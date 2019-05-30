@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="utf-8"?>
+<layout xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <RelativeLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="@drawable/bgscreen"
+        android:paddingBottom="@dimen/margin_30">
+
+        <ImageView
+            android:id="@+id/ivBluetoothImage"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_centerInParent="true"
+            android:src="@drawable/ic_bluetooth_connected_black_48dp" />
+
+        <TextView
+            android:id="@+id/tvBluetoothName"
+            style="@style/Base.TextAppearance.AppCompat.Large"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_below="@+id/ivBluetoothImage"
+            android:layout_marginLeft="@dimen/margin_10"
+            android:layout_centerHorizontal="true"
+            android:layout_marginTop="@dimen/margin_10"
+            android:fontFamily="@font/blanch_caps"
+            android:textSize="@dimen/def_font_size"
+            android:text="@string/str_toy_connected" />
+
+        <Button
+            android:id="@+id/btnNext"
+            android:layout_width="match_parent"
+            android:layout_height="@dimen/margin_40"
+            android:layout_marginLeft="@dimen/margin_20"
+            android:layout_marginTop="@dimen/margin_25"
+            android:layout_marginRight="@dimen/margin_20"
+            android:layout_marginBottom="@dimen/margin_10"
+            android:layout_weight="1"
+            android:layout_alignParentBottom="true"
+            android:background="@drawable/btn_img"
+            android:fontFamily="@font/blanch_caps"
+            android:visibility="visible"
+            android:textSize="@dimen/def_font_size"
+            android:text="@string/str_next"
+            android:textColor="@color/colortext" />
+
+    </RelativeLayout>
+</layout>

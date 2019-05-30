@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <attr name="color_primary" format="reference" />
+    <attr name="dialog_toolbar_color" format="reference" />
+    <attr name="dialog_list_item1" format="reference" />
+    <attr name="dialog_list_item2" format="reference" />
+    <attr name="dialog_radio_btn_text_color" format="reference" />
+    <attr name="dialog_radio_btn_disabled_text_color" format="reference" />
+
+
+</resources>

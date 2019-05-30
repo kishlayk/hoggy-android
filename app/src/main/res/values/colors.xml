@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <color name="colorPrimary">#b27300</color>
+    <color name="btn_yellow">#daa520</color>
+    <color name="colorPrimaryDark">#000000</color>
+    <color name="colorAccent">#D81B60</color>
+    <color name="boxbackground">#f9e19b</color>
+    <color name="boxtxtbackground">#89702f</color>
+    <color name="colortext">#462e02</color>
+
+    <color name="colortextbtn">#302002</color>
+   <!-- <color name="boxtxtbackground">#89702f</color>-->
+
+    <color name="white">#FFFFFF</color>
+    <color name="red">#b22222</color>
+    <color name="login_et_border">#e0eaf5</color>
+    <color name="login_et_hint_new">#848faa</color>
+    <color name="clr_link_blue">#0000EE</color>
+    <color name="black">#000000</color>
+    <color name="gray">#D3D3D3</color>
+    <color name="darker_gray">#A9A9A9</color>
+    <color name="trans_20_black">#32000000</color>
+    <color name="trans_30_black">#66000000</color>
+    <color name="txt_fees_apply">#76767c</color>
+    <color name="txt_property_price">#53535f</color>
+    <color name="bg_view_property_details">#adaaad</color>
+    <color name="empty_results_bg">#f4f4f5</color>
+    <color name="green">#669900</color>
+    <color name="cream">#eeeeee</color>
+    <color name="circle_pager_border">#3e3634</color>
+    <color name="time_slot_time_txt_disabled">#333d3534</color>
+    <color name="cream_bg">#c7b99f</color>
+    <color name="time_slot_period_txt">#fefefe</color>
+    <color name="time_slot_time_bg">#efefef</color>
+    <color name="grey_light">#e5e5e5</color>
+
+    <color name="light_grey">#F1F3F2</color>
+
+    <color name="btn_buy_color">#3d3534</color>
+    <color name="cream_bg1">#80c7b99f</color>
+    <color name="lightgrey">#D3D3D3</color>
+
+    <color name="status_hearing">#7B1FA2</color>
+    <color name="status_not_hearing">#757575</color>
+
+
+    <color name="dialogToolbarColorDark">#b27300</color>
+    <color name="dialogListItem1ColorDark">#daa520</color>
+    <color name="dialogListItem2ColorDark">#b27300</color>
+    <color name="dialogRadioBtnTxtColorDark">#FFFFFF</color>
+    <color name="dialogRadioBtnDisabledTxtColorDark">#b27300</color>
+    <color name="colorPrimaryDarkTheme">#b27300</color>
+    <color name="colorPrimaryDarkLight">#b27300</color>
+</resources>

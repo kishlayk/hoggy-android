@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8"?>
+<layout xmlns:android="http://schemas.android.com/apk/res/android">
+    <RelativeLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="@drawable/bgscreen">
+
+
+        <Button
+            android:id="@+id/btnSkip"
+            android:layout_width="wrap_content"
+            android:layout_height="@dimen/margin_40"
+            android:layout_marginLeft="@dimen/margin_20"
+            android:layout_marginTop="@dimen/margin_25"
+            android:layout_marginRight="@dimen/margin_20"
+            android:layout_marginBottom="@dimen/margin_10"
+            android:layout_weight="1"
+            android:layout_alignParentRight="true"
+            android:background="@color/txt_fees_apply"
+            android:fontFamily="@font/blanch_caps"
+            android:textSize="@dimen/def_font_size"
+            android:text="@string/lbl_skip"
+            android:textColor="@color/white" />
+
+        <Button
+            android:id="@+id/btnConnectToy"
+            android:layout_width="match_parent"
+            android:layout_height="@dimen/margin_40"
+            android:layout_marginLeft="@dimen/margin_20"
+            android:layout_marginTop="@dimen/margin_25"
+            android:layout_marginRight="@dimen/margin_20"
+            android:layout_marginBottom="@dimen/margin_10"
+            android:layout_weight="1"
+            android:layout_centerInParent="true"
+            android:background="@drawable/btn_img"
+            android:fontFamily="@font/blanch_caps"
+            android:textSize="@dimen/def_font_size"
+            android:text="@string/lbl_connect_toy"
+            android:textColor="@color/colortext" />
+
+
+
+
+    </RelativeLayout>
+</layout>

@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="utf-8"?>
+<layout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <RelativeLayout
+        android:layout_width="match_parent"
+        android:background="@drawable/bgscreen"
+        android:layout_height="match_parent"
+        tools:context=".ui.TicketsActivity">
+
+        <include
+            android:id="@+id/lyToolBar"
+            layout="@layout/layout_toolbar"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content" />
+
+        <android.support.v7.widget.RecyclerView
+            android:id="@+id/rvTickets"
+            android:layout_width="match_parent"
+            android:background="@drawable/bgscreen"
+            android:layout_height="wrap_content"
+            android:layout_below="@+id/lyToolBar"
+            android:layout_above="@+id/btnAddTicket"
+            tools:listitem="@layout/item_adapter_tickets" />
+
+        <TextView
+            android:id="@+id/tvEmptyView"
+            style="@style/Base.TextAppearance.AppCompat.Medium"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_centerInParent="true"
+            android:fontFamily="@font/blanch_caps" android:textSize="@dimen/def_font_size"
+            android:text="@string/str_no_tickets"
+            android:visibility="gone" />
+
+        <Button
+            android:id="@+id/btnAddTicket"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/str_add_new_ticket"
+            android:layout_alignParentBottom="true"
+            android:layout_margin="@dimen/margin_10"
+            android:fontFamily="@font/blanch_caps" android:textSize="@dimen/def_font_size"
+            android:background="@drawable/btn_img"
+            android:textColor="@color/colortext"/>
+        <ProgressBar
+            android:layout_width="60dp"
+            android:layout_centerInParent="true"
+            android:visibility="gone"
+            android:id="@+id/progress"
+            android:layout_height="60dp" />
+
+    </RelativeLayout>
+</layout>

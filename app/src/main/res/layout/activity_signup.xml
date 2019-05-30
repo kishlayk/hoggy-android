@@ -1,0 +1,208 @@
+<?xml version="1.0" encoding="utf-8"?>
+<layout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <RelativeLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="@color/white"
+        android:layoutDirection="ltr">
+
+        <include
+            android:id="@+id/lyToolBar"
+            layout="@layout/layout_toolbar"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content" />
+
+        <android.support.v4.widget.NestedScrollView
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:background="@drawable/bgscreen"
+            android:layout_below="@+id/lyToolBar"
+            android:scrollbars="none">
+
+
+                <RelativeLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent">
+
+
+                    <RelativeLayout
+                        android:id="@+id/rlName"
+                        android:layout_width="match_parent"
+                        android:layout_height="@dimen/margin_50"
+                        android:layout_marginLeft="@dimen/margin_20"
+                        android:layout_marginTop="@dimen/margin_10"
+                        android:layout_marginRight="@dimen/margin_20"
+                        android:background="@android:color/transparent">
+
+
+
+
+                            <EditText
+                                android:id="@+id/edtName"
+                                android:layout_width="match_parent"
+                                android:layout_height="match_parent"
+                                android:fontFamily="@font/blanch_caps"
+                                android:textSize="@dimen/def_font_size"
+                                android:hint="@string/lbl_name"
+                                android:imeOptions="actionNext"
+                                android:inputType="text"
+                                android:background="@drawable/boxboarder2"
+                                android:textColor="@color/colortext"
+                                android:padding="@dimen/margin_5"
+                                android:textColorHint="@color/colortext"
+                                android:text=""/>
+
+
+
+
+                    </RelativeLayout>
+
+                    <RelativeLayout
+                        android:id="@+id/rlBirthday"
+                        android:layout_width="match_parent"
+                        android:layout_height="@dimen/margin_50"
+                        android:layout_below="@+id/rlName"
+                        android:layout_marginLeft="@dimen/margin_20"
+                        android:layout_marginTop="@dimen/margin_10"
+                        android:layout_marginRight="@dimen/margin_20"
+                        android:background="@android:color/transparent">
+
+
+
+
+                            <EditText
+                                android:id="@+id/edtBirthday"
+                                android:layout_width="match_parent"
+                                android:layout_height="match_parent"
+                                android:background="@drawable/boxboarder2"
+                                android:editable="false"
+                                android:fontFamily="@font/blanch_caps"
+                                android:textSize="@dimen/def_font_size"
+                                android:hint="@string/lbl_birthday"
+                                android:imeOptions="actionNext"
+                                android:padding="@dimen/margin_5"
+                                android:text=""
+                                android:textColor="@color/colortext"
+                                android:textColorHint="@color/colortext" />
+
+
+
+
+                    </RelativeLayout>
+
+
+                    <RelativeLayout
+                        android:id="@+id/rlreferrecode"
+                        android:layout_width="match_parent"
+                        android:layout_height="@dimen/margin_50"
+                        android:layout_below="@+id/rlBirthday"
+                        android:layout_marginLeft="@dimen/margin_20"
+                        android:layout_marginTop="@dimen/margin_10"
+                        android:layout_marginRight="@dimen/margin_20"
+                        android:background="@android:color/transparent">
+
+
+
+
+                            <EditText
+                                android:id="@+id/edtClass"
+                                android:layout_width="match_parent"
+                                android:layout_height="match_parent"
+                                android:background="@drawable/boxboarder2"
+                                android:fontFamily="@font/blanch_caps"
+                                android:textSize="@dimen/def_font_size"
+                                android:focusable="false"
+                                android:hint="@string/lbl_class"
+                                android:imeOptions="actionNext"
+                                android:inputType="text"
+                                android:padding="@dimen/margin_5"
+                                android:text=""
+                                android:textColor="@color/colortext"
+                                android:textColorHint="@color/colortext" />
+
+
+
+                    </RelativeLayout>
+
+                    <RelativeLayout
+                        android:id="@+id/rlEmail"
+                        android:layout_width="match_parent"
+                        android:layout_height="@dimen/margin_50"
+                        android:layout_below="@+id/rlreferrecode"
+                        android:layout_marginLeft="@dimen/margin_20"
+                        android:layout_marginTop="@dimen/margin_10"
+                        android:layout_marginRight="@dimen/margin_20"
+                        android:background="@android:color/transparent">
+
+
+
+
+                            <EditText
+                                android:id="@+id/edtEmail"
+                                android:layout_width="match_parent"
+                                android:layout_height="match_parent"
+                                android:background="@drawable/boxboarder2"
+                                android:fontFamily="@font/blanch_caps"
+                                android:textSize="@dimen/def_font_size"
+                                android:hint="@string/lbl_email"
+                                android:imeOptions="actionNext"
+                                android:inputType="textEmailAddress"
+                                android:padding="@dimen/margin_5"
+                                android:text=""
+                                android:textColor="@color/colortext"
+                                android:textColorHint="@color/colortext" />
+
+
+
+                    </RelativeLayout>
+
+
+                    <Button
+                        android:id="@+id/btnSignUp"
+                        android:layout_width="200dp"
+                        android:layout_height="80dp"
+                        android:layout_centerHorizontal="true"
+                        android:layout_below="@+id/rlEmail"
+                        android:layout_marginLeft="@dimen/margin_20"
+                        android:layout_marginTop="@dimen/margin_25"
+                        android:layout_marginRight="@dimen/margin_20"
+                        android:layout_marginBottom="@dimen/margin_10"
+                        android:layout_weight="1"
+                        android:background="@drawable/buttonopp"
+                        android:fontFamily="@font/blanch_caps"
+                        android:textSize="@dimen/def_font_size"
+                        android:text="@string/lbl_submit"
+                        android:textColor="@color/white" />
+
+                    <Button
+                        android:id="@+id/btnGoogleAssistant"
+                        android:layout_width="match_parent"
+                        android:layout_height="@dimen/margin_40"
+                        android:layout_below="@+id/btnSignUp"
+                        android:layout_marginLeft="@dimen/margin_20"
+                        android:layout_marginTop="@dimen/margin_25"
+                        android:layout_marginRight="@dimen/margin_20"
+                        android:layout_marginBottom="@dimen/margin_10"
+                        android:layout_weight="1"
+                        android:background="@drawable/btn_img"
+                        android:visibility="gone"
+                        android:fontFamily="@font/blanch_caps"
+                        android:textSize="@dimen/def_font_size"
+                        android:text="@string/lbl_google_assistant"
+                        android:textColor="@color/colortext" />
+                    <ProgressBar
+                        android:layout_width="match_parent"
+                        android:layout_centerInParent="true"
+                        android:visibility="gone"
+                        android:id="@+id/progress"
+                        android:layout_height="match_parent" />
+                </RelativeLayout>
+
+        </android.support.v4.widget.NestedScrollView>
+
+
+    </RelativeLayout>
+</layout>

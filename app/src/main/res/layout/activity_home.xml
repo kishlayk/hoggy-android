@@ -1,0 +1,112 @@
+<?xml version="1.0" encoding="utf-8"?>
+<layout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools">
+<RelativeLayout
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@drawable/bgscreen"
+    tools:context=".ui.HomeActivity">
+
+    <include
+        android:id="@+id/lyToolBar"
+        layout="@layout/layout_toolbar"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content" />
+
+    <android.support.v7.widget.RecyclerView
+        android:id="@+id/optionsRv"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_below="@+id/lyToolBar"
+        android:layout_above="@+id/rlToyOptions"
+        android:clipToPadding="false"
+        android:padding="@dimen/margin_10">
+
+    </android.support.v7.widget.RecyclerView>
+
+    <android.support.v7.widget.CardView
+        android:id="@+id/rlToyOptions"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_alignParentBottom="true"
+        android:layout_marginBottom="@dimen/margin_10"
+        android:layout_marginRight="@dimen/margin_5"
+        android:layout_marginLeft="@dimen/margin_5"
+        app:cardBackgroundColor="@color/white"
+        app:cardCornerRadius="@dimen/margin_3"
+        app:cardElevation="@dimen/margin_3">
+
+    <RelativeLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_margin="@dimen/margin_5">
+
+        <ImageView
+            android:id="@+id/ivToyImage"
+            android:layout_width="@dimen/margin_60"
+            android:layout_height="@dimen/margin_60"
+            android:src="@drawable/ic_launcher"
+            android:layout_margin="@dimen/margin_5"/>
+
+        <TextView
+            android:id="@+id/tvToyName"
+            style="@style/Base.TextAppearance.AppCompat.Small"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/margin_10"
+            android:fontFamily="@font/blanch_caps"
+            android:textSize="@dimen/def_font_size"
+            android:text="Hoggy"
+            android:layout_marginLeft="@dimen/margin_5"
+            android:layout_toRightOf="@+id/ivToyImage"/>
+
+        <TextView
+            android:id="@+id/tvSwitchOn"
+            style="@style/Base.TextAppearance.AppCompat.Small"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textColor="@color/red"
+            android:fontFamily="@font/blanch_caps"
+            android:textSize="@dimen/def_font_size"
+            android:text="@string/str_switch_on"
+            android:layout_marginLeft="@dimen/margin_5"
+            android:layout_toRightOf="@+id/ivToyImage"
+            android:layout_below="@+id/tvToyName"/>
+
+        <TextView
+            android:id="@+id/tvTroubleShoot"
+            style="@style/Base.TextAppearance.AppCompat.Small"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textColor="@color/red"
+            android:fontFamily="@font/blanch_caps"
+            android:visibility="gone"
+            android:textSize="@dimen/def_font_size"
+            android:text="@string/str_trouble_shoot"
+            android:layout_marginLeft="@dimen/margin_5"
+            android:layout_marginTop="@dimen/margin_10"
+            android:layout_marginRight="@dimen/margin_5"
+            android:layout_alignParentRight="true" />
+
+        <TextView
+            android:id="@+id/tvDisconnect"
+            style="@style/Base.TextAppearance.AppCompat.Small"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textColor="@color/red"
+            android:layout_below="@+id/tvTroubleShoot"
+            android:fontFamily="@font/blanch_caps"
+            android:textSize="@dimen/def_font_size"
+            android:text="@string/str_disconnect"
+            android:layout_marginLeft="@dimen/margin_5"
+            android:layout_marginTop="@dimen/margin_10"
+            android:layout_marginRight="@dimen/margin_5"
+            android:layout_alignParentRight="true"/>
+
+    </RelativeLayout>
+
+    </android.support.v7.widget.CardView>
+
+</RelativeLayout>
+</layout>

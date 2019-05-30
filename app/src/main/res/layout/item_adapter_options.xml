@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8"?>
+<layout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools">
+
+
+    <android.support.v7.widget.CardView
+        android:layout_width="@dimen/margin_150"
+        android:layout_height="@dimen/margin_150"
+        app:cardCornerRadius="8dp"
+        android:layout_centerInParent="true"
+        app:cardElevation="3dp"
+        android:layout_margin="@dimen/margin_10"
+        android:padding="@dimen/margin_10"
+        android:id="@+id/rootCardLayout">
+
+    <RelativeLayout
+        android:layout_width="match_parent"
+        android:layout_gravity="center"
+        android:layout_height="match_parent">
+
+        <ImageView
+            android:id="@+id/ivOptionImage"
+            android:layout_width="@dimen/margin_70"
+            android:layout_height="@dimen/margin_70"
+            android:padding="@dimen/margin_10"
+            android:layout_marginTop="@dimen/margin_30"
+            android:layout_centerHorizontal="true"
+            android:src="@mipmap/ic_launcher" />
+
+        <TextView
+            android:id="@+id/tvOptionName"
+            style="@style/Base.TextAppearance.AppCompat.Small"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center"
+            android:layout_below="@+id/ivOptionImage"
+            android:fontFamily="@font/blanch_caps"
+            android:textSize="@dimen/def_font_size"
+            android:text="@string/app_name"
+            android:textColor="@color/colortext"/>
+
+    </RelativeLayout>
+    </android.support.v7.widget.CardView>
+</layout>

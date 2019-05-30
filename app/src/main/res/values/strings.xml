@@ -1,0 +1,114 @@
+<resources>
+    <string name="app_name">Hoggy</string>
+
+    <string name="lbl_name">Kid\'s Name</string>
+    <string name="lbl_birthday">Birthday</string>
+    <string name="lbl_class">Class</string>
+    <string name="lbl_email">Parent\'s Email</string>
+    <string name="lbl_submit">Submit</string>
+
+    <string name="title_home">Home</string>
+
+    <string name="err_fields">Fields Cannot be Blank</string>
+    <string name="error_invalid_email">This email address is invalid</string>
+    <string name="lbl_registration">Registration</string>
+
+    <string name="lbl_connect_toy">Connect Toy</string>
+    <string name="et_hint_title">Title</string>
+    <string name="et_hint_desc">Description</string>
+    <string name="lbl_desc">Description</string>
+    <string name="lbl_title">Ticket Title</string>
+    <string name="lbl_add_ticket">Add Ticket</string>
+    <string name="str_no_tickets">No Tickets Found</string>
+    <string name="err_something_wrong">Something went wrong</string>
+    <string name="str_add_tickets">Add Tickets</string>
+    <string name="str_add_new_ticket">Add new ticket</string>
+    <string-array name="class_array">
+    <item>1</item>
+    <item>2</item>
+    <item>3</item>
+    <item>4</item>
+    <item>5</item>
+    <item>6</item>
+    <item>7</item>
+    <item>8</item>
+    <item>9</item>
+    <item>10</item>
+    <item>11</item>
+    <item>12</item>
+    </string-array>
+
+    <array name="arrOptions">
+        <item>Connect Toy</item>
+       <!-- <item>Google Assistant</item>-->
+        <!--<item>Add a Quiz</item>-->
+        <item>Usage Manual</item>
+        <!--<item>Analytics</item>-->
+        <item>Support</item>
+    </array>
+
+    <array name="arrImage">
+        <item>@drawable/ic_launcher</item>
+        <item>@drawable/ic_launcher</item>
+        <item>@drawable/ic_launcher</item>
+        <item>@drawable/ic_launcher</item>
+        <item>@drawable/ic_launcher</item>
+    </array>
+
+    <array name="arrBluetooth">
+        <item>Kiki - xxxx</item>
+        <item>Abc</item>
+        <item>Xyz</item>
+    </array>
+
+    <string name="str_title">Title</string>
+    <string name="lbl_status">Status</string>
+    <string name="lbl_opened">Opened</string>
+    <string name="lbl_closed">Closed</string>
+    <string name="str_pairing_instructions1">1.Switch on the Toy</string>
+    <string name="str_pairing_instructions2">2.If you see blue light on Toy, click on connect</string>
+    <string name="lbl_pairing_instructions">Pairing Instructions</string>
+    <string name="lbl_connect">Connect</string>
+    <string name="str_question1">Is the toy turned on?</string>
+    <string name="str_yes">Yes</string>
+    <string name="str_no">No</string>
+    <string name="str_question2">Can you see the red light blinking in toy?</string>
+    <string name="str_question3">Is your mobile connected to internet?</string>
+    <string name="str_question4">Is your mobile within 5 meters of distance?</string>
+    <string name="lbl_done">Done</string>
+    <string name="str_switch_on">On</string>
+    <string name="str_trouble_shoot">Trouble Shoot</string>
+    <string name="str_disconnect">Disconnect</string>
+    <string name="lbl_skip">Skip</string>
+    <string name="lbl_bluetooth_list">Bluetooth List</string>
+    <string name="str_toy_connected">Hoggy is connected</string>
+    <string name="str_next">Next</string>
+    <string name="alert_msg_disconnect">Are you sure want to disconnect?</string>
+    <string name="listening">Listening...</string>
+
+    <string name="empty_list_message">No nearby devices found. Tap on the bottom-right button to start a new toy discovery.</string>
+    <string name="InvalidDevice">Invalid Device</string>
+    <string name="NullDevice">Null Device</string>
+    <string name="Connecting">Connecting</string>
+    <string name="Disconnecting">Disconnecting</string>
+    <string name="bluetooth_not_available_title">Bluetooth not available</string>
+    <string name="bluetooth_not_available_message">It seems that this device doesn\'t have a Bluetooth controller available. \\nBlue Pair works only with Bluetooth, so please try again on a different device. \\nThe app will be now terminated.</string>
+    <string name="enabling_bluetooth">Turning on Bluetooth and looking for devices&#8230;</string>
+    <string name="device_discovery_started">Looking for nearby Toy&#8230;</string>
+    <string name="device_discovery_stopped">Toy discovery cancelled</string>
+    <string name="device_already_paired">This Toy is already paired!</string>
+    <string name="lbl_paired_list">Paired Toys List</string>
+    <string name="lbl_available_list">Available Devices List</string>
+    <string name="empty_paired_list">No paired bluetooth devices found. Tap on the bottom-right button to start pair a new device.</string>
+    <string name="str_connected">is connected</string>
+    <string name="str_connected_toy">Hoggy is not connected please try again to connect</string>
+    <string name="err_device_already_connected">Toy %s already connected, please disconnect and try to add new device</string>
+    <string name="lbl_google_assistant">Google Assistant</string>
+    <string name="str_device_unpaired">Toy is unpaired, please pair again</string>
+
+    <string name="default_notification_channel_id">1111</string>
+    <string name="default_notification_channel_title">Default Notification</string>
+    <string name="msg_no_internet">No internet Connection!</string>
+
+
+</resources>
