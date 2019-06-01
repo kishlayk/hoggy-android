@@ -19,12 +19,14 @@ import android.databinding.DataBindingUtil;
 import android.media.AudioManager;
 import android.net.ConnectivityManager;
 import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.IBinder;
 import android.os.StrictMode;
 import android.os.StrictMode.ThreadPolicy;
 import android.provider.Settings;
+import android.support.annotation.RequiresApi;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AlertDialog;
@@ -39,6 +41,7 @@ import android.widget.Button;
 import android.widget.LinearLayout;
 import android.widget.Toast;
 
+import com.bumptech.glide.util.Util;
 import com.my.kiki.R;
 import com.my.kiki.adapter.OptionsAdapter;
 import com.my.kiki.bluetooth.BluetoothController;
@@ -70,7 +73,6 @@ public class HomeActivity extends AppCompatActivity implements OptionsAdapter.Op
     private String[] optionsNameArr;
     boolean isProcessAudio = false;
     private SpeechService mSpeechService;
-    SharedPreferences.Editor editor;
     private VoiceRecorder mVoiceRecorder;
     AudioManager.OnAudioFocusChangeListener afChangeListener;
     private static final String FRAGMENT_MESSAGE_DIALOG = "message_dialog";
@@ -111,7 +113,6 @@ public class HomeActivity extends AppCompatActivity implements OptionsAdapter.Op
 
         @Override
         public void onVoiceStart() {
-            Log.e("xyz123","onVoiceStart");
             showStatus(true);
             if (mSpeechService != null) {
                 Utils.getInstance(HomeActivity.this).setBoolean(PREF_IS_ERROR, false);
@@ -123,7 +124,6 @@ public class HomeActivity extends AppCompatActivity implements OptionsAdapter.Op
 
         @Override
         public void onVoice(byte[] data, int size) {
-           //   Log.i("xyz123","onVoice");
             if (mSpeechService != null) {
                 mSpeechService.recognize(data, size);
             }
@@ -132,7 +132,6 @@ public class HomeActivity extends AppCompatActivity implements OptionsAdapter.Op
 
         @Override
         public void onVoiceEnd() {
-            Log.e("xyz123","onVoiceEnd");
             showStatus(false);
 
 
@@ -140,13 +139,12 @@ public class HomeActivity extends AppCompatActivity implements OptionsAdapter.Op
 
                 boolean isError= Utils.getInstance(HomeActivity.this).getBoolean(Utils.PREF_IS_ERROR);
 
-                Log.e("xyz123",isInternetAvailable()+" finishRecognizing "+isError);
+                Log.i("xyz123","Is internet available : " + isInternetAvailable()+" finishRecognizing "+isError);
                 if (isInternetAvailable() && !isError) {
 
                     mSpeechService.finishRecognizing();
                     // Stop listening to voice
-                    editor.putBoolean(PREF_IS_SPEAKING, true);
-                    editor.commit();
+                    Utils.getInstance(HomeActivity.this).setBoolean(PREF_IS_SPEAKING, true);
                 }
 
 
@@ -160,15 +158,22 @@ public class HomeActivity extends AppCompatActivity implements OptionsAdapter.Op
 
     };
 
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
 
         super.onCreate(savedInstanceState);
-        StrictMode.setThreadPolicy(new ThreadPolicy.Builder()
-                .detectAll()
-                .penaltyLog()
-                .penaltyDeath()
-                .build());
+//        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+//            StrictMode.setThreadPolicy(new ThreadPolicy.Builder()
+//                    .detectAll()
+//                    .detectCustomSlowCalls()
+//                    .detectNetwork()
+//                    .detectResourceMismatches()
+//                    .detectUnbufferedIo()
+//                    .penaltyLog()
+//                    .build());
+//        }
+
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
 
         binding = DataBindingUtil.setContentView(this, R.layout.activity_home);
@@ -184,7 +189,6 @@ public class HomeActivity extends AppCompatActivity implements OptionsAdapter.Op
         }
         optionsNameArr = getResources().getStringArray(R.array.arrOptions);
 //        imagesArr =  getResources().getIntArray(R.array.arrImage);
-        editor = getSharedPreferences(PREF_NAME, MODE_PRIVATE).edit();
         OptionsAdapter optionsAdapter = new OptionsAdapter(optionsNameArr, imagesArr, layoutBgArr, this);
         optionsAdapter.setOptionsSelected(this);
 
@@ -417,8 +421,7 @@ public class HomeActivity extends AppCompatActivity implements OptionsAdapter.Op
                         handler.postDelayed(new Runnable() {
                             @Override
                             public void run() {
-                                editor.putBoolean(PREF_IS_SPEAKING, false);
-                                editor.commit();
+                                Utils.getInstance(HomeActivity.this).setBoolean(PREF_IS_SPEAKING, false);
                                 isProcessAudio=false;
                             }
                         }, 500);
@@ -479,8 +482,7 @@ public class HomeActivity extends AppCompatActivity implements OptionsAdapter.Op
     };
 
     private void startVoiceRecorder() {
-        editor.putBoolean(PREF_IS_SPEAKING, false);
-        editor.commit();
+        Utils.getInstance(HomeActivity.this).setBoolean(PREF_IS_SPEAKING, false);
         Log.e("xyz123","startVoiceRecorder");
         if (mVoiceRecorder != null) {
             mVoiceRecorder.stop();
@@ -490,8 +492,7 @@ public class HomeActivity extends AppCompatActivity implements OptionsAdapter.Op
     }
 
     private void stopVoiceRecorder() {
-        editor.putBoolean(PREF_IS_SPEAKING, false);
-        editor.commit();
+        Utils.getInstance(HomeActivity.this).setBoolean(PREF_IS_SPEAKING, false);
         isProcessAudio=false;
         Log.e("xyz123","stopVoiceRecorder");
         if (mVoiceRecorder != null) {
@@ -536,9 +537,7 @@ public class HomeActivity extends AppCompatActivity implements OptionsAdapter.Op
                 @Override
                 public void onSpeechResponsed(final String text2, final boolean isFinal) {
 
-
-                    editor.putBoolean(PREF_IS_SPEAKING, false);
-                    editor.commit();
+                    Utils.getInstance(HomeActivity.this).setBoolean(PREF_IS_SPEAKING, false);
                     isProcessAudio=false;
 
 //                    if (isFinal && mVoiceRecorder != null) {
@@ -553,8 +552,7 @@ public class HomeActivity extends AppCompatActivity implements OptionsAdapter.Op
                         Utils.getInstance(HomeActivity.this).setBoolean(PREF_IS_ERROR, true);
 
 //                        if (isInternetAvailable() && isSpeaking) {
-//                            editor.putBoolean(PREF_IS_SPEAKING, false);
-//                            editor.commit();
+//                                Utils.getInstance(HomeActivity.this).setBoolean(PREF_IS_SPEAKING, false);
 //                            isProcessAudio=false;
 //                        }
                     }
@@ -605,12 +603,25 @@ public class HomeActivity extends AppCompatActivity implements OptionsAdapter.Op
 
                 @Override
                 public void onRequestStart() {
-                    Log.e("xyz123","onRequestStart");
+//                    Log.e("xyz123","onRequestStart");
                 }
 
                 @Override
                 public void onCredentioalSuccess() {
                     Log.e("xyz123","onCredentioalSuccess");
+                }
+
+                @Override
+                public void restartSpeechService() {
+                    unbindService(mServiceConnection);
+                    bindService(new Intent(HomeActivity.this, SpeechService.class), mServiceConnection, BIND_AUTO_CREATE);
+                }
+
+                @Override
+                public void onError(){
+                    mSpeechService.stopRecognising();
+                    int sampleRate = mVoiceRecorder==null?mVoiceRecorder.getSampleRate():16000;
+                    mSpeechService.startRecognizing(sampleRate);
                 }
 
             };

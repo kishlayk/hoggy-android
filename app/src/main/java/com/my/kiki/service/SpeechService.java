@@ -16,6 +16,7 @@
 
 package com.my.kiki.service;
 
+import android.Manifest;
 import android.app.Service;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
@@ -23,6 +24,7 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.content.pm.PackageManager;
 import android.media.AudioFormat;
 import android.media.AudioManager;
 import android.media.AudioTrack;
@@ -32,6 +34,10 @@ import android.os.Handler;
 import android.os.IBinder;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
+import android.support.v4.app.ActivityCompat;
+import android.telephony.CellInfoGsm;
+import android.telephony.CellSignalStrengthGsm;
+import android.telephony.TelephonyManager;
 import android.text.TextUtils;
 import android.util.Log;
 import android.widget.Toast;
@@ -94,11 +100,20 @@ public class SpeechService extends Service {
          * @param isFinal {@code true} when the API finished processing audio.
          */
         void onSpeechRecognized(String text, boolean isFinal);
+
         void onSpeechResponsed(String text, boolean isFinal);
+
         void onVoiceRecordStart();
+
         void onVoiceRecordStop();
+
         void onRequestStart();
+
         void onCredentioalSuccess();
+
+        void onError();
+
+        void restartSpeechService();
 
     }
 
@@ -111,7 +126,7 @@ public class SpeechService extends Service {
 
     private final SpeechBinder mBinder = new SpeechBinder();
     private final ArrayList<Listener> mListeners = new ArrayList<>();
-    private  EmbeddedAssistantGrpc.EmbeddedAssistantStub mApi;
+    private EmbeddedAssistantGrpc.EmbeddedAssistantStub mApi;
     private static Handler mHandler;
     private BluetoothState bluetoothState = BluetoothState.UNAVAILABLE;
 
@@ -121,27 +136,30 @@ public class SpeechService extends Service {
     AudioTrack mAudioTrack;//audiotracker
     AudioManager audioManager;
 
+    private final int validSampleRates[] = new int[]{8000, 11025, 16000, 22050,
+            32000, 37800, 44056, 44100, 47250, 48000, 50000, 50400, 88200,
+            96000, 176400, 192000, 352800, 2822400, 5644800};
+
     private BluetoothDevice device;
 
 
     private final StreamObserver<ConverseResponse> mResponseObserver
-            =new StreamObserver<ConverseResponse>() {
+            = new StreamObserver<ConverseResponse>() {
         @Override
         public void onNext(ConverseResponse value) {
 
-            if (bluetoothState!=BluetoothState.AVAILABLE){
+            if (bluetoothState != BluetoothState.AVAILABLE) {
                 return;
             }
             //Log.e(TAG,"Event value "+value.getConverseResponseCase()+"");
             switch (value.getConverseResponseCase()) {
                 case EVENT_TYPE:
-                   // Log.d(TAG, "converse response event: " + value.getEventType());
+                    // Log.d(TAG, "converse response event: " + value.getEventType());
                     //playAudioSong=false;
                     break;
                 case RESULT:
-	                Log.i("xyz123","RESULT");
                     final String spokenRequestText = value.getResult().getSpokenRequestText();
-                    final String spokenResponseText= value.getResult().getSpokenResponseText();
+                    final String spokenResponseText = value.getResult().getSpokenResponseText();
 
                     vConversationState = value.getResult().getConversationState();
 
@@ -174,7 +192,7 @@ public class SpeechService extends Service {
                 case AUDIO_OUT:
                     byte[] data = value.getAudioOut().getAudioData().toByteArray();
                     final ByteBuffer audioData = ByteBuffer.wrap(data);
-                   // Log.d(TAG, "converse audio size: " + audioData.remaining());
+                    // Log.d(TAG, "converse audio size: " + audioData.remaining());
 
                     final byte[] finaldata = data;
 
@@ -198,11 +216,12 @@ public class SpeechService extends Service {
 //                        }.start();
                     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
                         mAudioTrack.write(audioData, audioData.remaining(), AudioTrack.WRITE_BLOCKING);
+                    } else {
+                        mAudioTrack.write(data, 0, data.length);
                     }
-                    else
-                    {
-                        mAudioTrack.write(data,0,data.length);
-                    }
+
+
+//                    Log.i(TAG, "MOBILE DATA SPEED: " + Utils.getInstance(MainApplication.getGlobalContext()).getMobileDataSpeed() + " , CPU USAGE : " + Utils.getInstance(MainApplication.getGlobalContext()).readUsage() + " , HEAP SIZE : " + Utils.getInstance(MainApplication.getGlobalContext()).getHeapSize() + "mb");
 
 
                     break;
@@ -219,11 +238,11 @@ public class SpeechService extends Service {
 
         @Override
         public void onError(Throwable t) {
-
+            Log.e(TAG, t.toString());
             try{
-                Log.e(TAG, "onError: ");
                 for (Listener listener : mListeners) {
                     listener.onSpeechResponsed("", true);
+                    listener.restartSpeechService();
                 }
             }catch (Exception e){
                 e.printStackTrace();
@@ -240,8 +259,7 @@ public class SpeechService extends Service {
                 listener.onSpeechResponsed("", false);
             }
 
-            if (mAudioTrack.getPlayState()!=AudioTrack.PLAYSTATE_PLAYING)
-            mAudioTrack.play();
+            if (mAudioTrack.getPlayState()!=AudioTrack.PLAYSTATE_PLAYING) mAudioTrack.play();
 
 
 
@@ -271,18 +289,17 @@ public class SpeechService extends Service {
         mHandler = new Handler();
         fetchAccessToken();
 
-        int outputBufferSize = AudioTrack.getMinBufferSize(16000,
+        int outputBufferSize = AudioTrack.getMinBufferSize(32000,
                 AudioFormat.CHANNEL_IN_STEREO,
                 AudioFormat.ENCODING_PCM_16BIT);
 
         try {
             audioManager = (AudioManager) getSystemService(Context.AUDIO_SERVICE);
-            mAudioTrack = new AudioTrack(audioManager.MODE_NORMAL, 16000,
-                    AudioFormat.CHANNEL_OUT_MONO, AudioFormat.ENCODING_PCM_16BIT, outputBufferSize, AudioTrack.MODE_STREAM);
+            mAudioTrack = new AudioTrack(audioManager.MODE_NORMAL, 16000,AudioFormat.CHANNEL_OUT_MONO, AudioFormat.ENCODING_PCM_16BIT, outputBufferSize, AudioTrack.MODE_STREAM);
 
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-//                mAudioTrack.setVolume(DEFAULT_VOLUME);
-                audioManager.setStreamVolume(3, audioManager.getStreamMaxVolume(3), 0);
+                mAudioTrack.setVolume(DEFAULT_VOLUME);
+//                audioManager.setStreamVolume(3, audioManager.getStreamMaxVolume(3), 0);
             }
 
             mAudioTrack.play();
@@ -351,22 +368,7 @@ public class SpeechService extends Service {
     @Override
     public void onDestroy() {
         super.onDestroy();
-        mHandler.removeCallbacks(mFetchAccessTokenRunnable);
-        mHandler = null;
-        Log.i("Speech Service ","Destroy");
-        // Release the gRPC channel.
-        if (mApi != null) {
-            final ManagedChannel channel = (ManagedChannel) mApi.getChannel();
-            if (channel != null && !channel.isShutdown()) {
-                try {
-                    channel.shutdown().awaitTermination(5, TimeUnit.SECONDS);
-                } catch (InterruptedException e) {
-                    Log.e(TAG, "Error shutting down the gRPC channel.", e);
-                }
-            }
-            mApi = null;
-        }
-
+        stopRecognising();
         unregisterReceiver(mReceiver);
         unregisterReceiver(bluetoothStateReceiver);
     }
@@ -400,7 +402,6 @@ public class SpeechService extends Service {
         mAudioTrack.stop();
     }
 
-
     private void activateBluetoothSco() {
 
         if (!audioManager.isBluetoothScoAvailableOffCall()) {
@@ -408,11 +409,12 @@ public class SpeechService extends Service {
         //    Toast.makeText(this, "SCO ist not available, recording is not possible!", Toast.LENGTH_SHORT);
             return;
         }else {
-            Log.i(TAG, "SCO  available, recording is possible");
+//            Log.i(TAG, "SCO  available, recording is possible");
 //            Toast.makeText(this, "SCO available, recording is possible!", Toast.LENGTH_SHORT);
         }
 
         if (!audioManager.isBluetoothScoOn()) {
+            Log.i(TAG, "Turning on Bluetooth again");
             audioManager.setSpeakerphoneOn(false);
             audioManager.setBluetoothScoOn(true);
             audioManager.startBluetoothSco();
@@ -430,7 +432,6 @@ public class SpeechService extends Service {
     private ByteString vConversationState = null;
 
     public void startRecognizing(int sampleRate) {
-
         activateBluetoothSco();
 
         if (mApi == null) {
@@ -463,7 +464,6 @@ public class SpeechService extends Service {
         mRequestObserver.onNext(ConverseRequest.newBuilder()
                 .setConfig(converseConfigBuilder.build())
                 .build());
-
     }
 
 
@@ -495,6 +495,26 @@ public class SpeechService extends Service {
         mRequestObserver.onCompleted();
         mRequestObserver = null;
     }
+
+    public void stopRecognising(){
+        mHandler.removeCallbacks(mFetchAccessTokenRunnable);
+        mHandler = null;
+        Log.i("Speech Service ","Destroy");
+        // Release the gRPC channel.
+        if (mApi != null) {
+            final ManagedChannel channel = (ManagedChannel) mApi.getChannel();
+            if (channel != null && !channel.isShutdown()) {
+                try {
+                    channel.shutdown().awaitTermination(5, TimeUnit.SECONDS);
+                } catch (InterruptedException e) {
+                    Log.e(TAG, "Error shutting down the gRPC channel.", e);
+                }
+            }
+            mApi = null;
+        }
+    }
+
+
 
     private class SpeechBinder extends Binder {
         SpeechService getService() {

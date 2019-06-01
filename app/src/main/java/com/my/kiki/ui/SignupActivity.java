@@ -158,6 +158,8 @@ binding.edtClass.setOnClickListener(new View.OnClickListener() {
                     Utils.getInstance(SignupActivity.this).setString(Utils.PREF_USER_BIRTHDAY, binding.edtBirthday.getText().toString());
                     Utils.getInstance(SignupActivity.this).setString(Utils.PREF_USER_CLASS, binding.edtClass.getText().toString());
 
+
+
                     startActivity(new Intent(SignupActivity.this, ConnectToyActivity.class));
                     binding.progress.setVisibility(View.GONE);
                     finish();

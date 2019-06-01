@@ -4,6 +4,7 @@ import android.content.Intent;
 import android.databinding.DataBindingUtil;
 import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
+import android.util.Log;
 
 import com.my.kiki.R;
 import com.my.kiki.databinding.ActivitySplashBinding;
@@ -29,6 +30,7 @@ public class SplashActivity extends AppCompatActivity {
                             waited += 100;
                     }
                 } catch (Exception e) {
+                    Log.e("Splash Screen", e.getLocalizedMessage());
                 } finally {
                     finish();
                     Intent i = null;

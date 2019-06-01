@@ -1,5 +1,6 @@
 package com.my.kiki.utils;
 
+import android.Manifest;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothManager;
@@ -8,13 +9,19 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.SharedPreferences.Editor;
+import android.content.pm.PackageManager;
 import android.media.AudioDeviceInfo;
 import android.media.AudioManager;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
-import android.os.AsyncTask;
 import android.os.Build;
-import android.os.Handler;
+import android.support.v4.app.ActivityCompat;
+import android.telephony.CellInfo;
+import android.telephony.CellInfoGsm;
+import android.telephony.CellInfoWcdma;
+import android.telephony.CellSignalStrengthCdma;
+import android.telephony.CellSignalStrengthWcdma;
+import android.telephony.TelephonyManager;
 import android.util.Log;
 import android.widget.Toast;
 
@@ -25,6 +32,8 @@ import com.my.kiki.main.MainApplication;
 import com.my.kiki.ui.BluetoothListActivity;
 import com.my.kiki.ui.HomeActivity;
 
+import java.io.IOException;
+import java.io.RandomAccessFile;
 import java.lang.reflect.InvocationTargetException;
 import java.util.Iterator;
 import java.util.List;
@@ -79,6 +88,7 @@ public class Utils {
     public static final String EXTRA_IS_TEMP_DISCONNECT = "extra_is_temp_disconnect";
 
     public static final String TOY_DEVICE_OBJECT = "toy_device_object";
+    public static boolean temp;
 
     public Utils(Context context) {
         this.context = context;
@@ -94,44 +104,27 @@ public class Utils {
         return utils;
     }
 
-    public void setString(final String key, final String value) {
-        new Thread(new Runnable() {
-            @Override
-            public void run() {
-                edit.putString(key, value);
-                edit.commit();
-            }
-        });
-
+    public void setString(String key, String value) {
+        edit.putString(key, value);
+        edit.commit();
     }
 
     public String getString(String key) {
         return pref.getString(key, "");
     }
 
-    public void setInt(final String key, final int value) {
-        new Thread(new Runnable() {
-            @Override
-            public void run() {
-                edit.putInt(key, value);
-                edit.commit();
-            }
-        });
-
+    public void setInt(String key, int value) {
+        edit.putInt(key, value);
+        edit.commit();
     }
 
-    public int getInt(final String key) {
+    public int getInt(String key) {
         return pref.getInt(key, 0);
     }
 
-    public void setBoolean(final String key, final boolean value) {
-        new Thread(new Runnable() {
-            @Override
-            public void run() {
-                edit.putBoolean(key, value);
-                edit.commit();
-            }
-        });
+    public void setBoolean(String key, boolean value) {
+        edit.putBoolean(key, value);
+        edit.commit();
     }
 
     public boolean getBoolean(String key) {
@@ -232,5 +225,78 @@ public class Utils {
         Utils.getInstance(context).setString(Utils.PREF_CONNECTED_DEVICE_MAC, deviceAddress);
         Utils.getInstance(context).setString(Utils.PREF_CONNECTED_DEVICE_NAME, deviceName);
         Utils.getInstance(context).setBoolean(Utils.PREF_IS_TOY_CONNECTED, true);
+    }
+
+    public float readUsage() {
+        try {
+            RandomAccessFile reader = new RandomAccessFile("/proc/stat", "r");
+            String load = reader.readLine();
+
+            String[] toks = load.split(" ");
+
+            long idle1 = Long.parseLong(toks[5]);
+            long cpu1 = Long.parseLong(toks[2]) + Long.parseLong(toks[3]) + Long.parseLong(toks[4])
+                    + Long.parseLong(toks[6]) + Long.parseLong(toks[7]) + Long.parseLong(toks[8]);
+
+//            try {
+//                Thread.sleep(360);
+//            } catch (Exception e) {}
+
+            reader.seek(0);
+            load = reader.readLine();
+            reader.close();
+
+            toks = load.split(" ");
+
+            long idle2 = Long.parseLong(toks[5]);
+            long cpu2 = Long.parseLong(toks[2]) + Long.parseLong(toks[3]) + Long.parseLong(toks[4])
+                    + Long.parseLong(toks[6]) + Long.parseLong(toks[7]) + Long.parseLong(toks[8]);
+
+            return (float)(cpu2 - cpu1) / ((cpu2 + idle2) - (cpu1 + idle1));
+
+        } catch (IOException ex) {
+            ex.printStackTrace();
+        }
+
+        return 0;
+    }
+
+    public int getMobileDataSpeed(){
+        TelephonyManager telephonyManager = (TelephonyManager) MainApplication.getGlobalContext().getSystemService(Context.TELEPHONY_SERVICE);
+        if (ActivityCompat.checkSelfPermission(MainApplication.getGlobalContext(), Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+            // TODO: Consider calling
+            //    ActivityCompat#requestPermissions
+            // here to request the missing permissions, and then overriding
+            //   public void onRequestPermissionsResult(int requestCode, String[] permissions,
+            //                                          int[] grantResults)
+            // to handle the case where the user grants the permission. See the documentation
+            // for ActivityCompat#requestPermissions for more details.
+            return -10000;
+        }
+//        if(!temp){
+//            temp=true;
+//            throw new RuntimeException();
+//        }
+
+        List<CellInfo> cellInfos = telephonyManager != null? telephonyManager.getAllCellInfo(): null;
+        if (cellInfos != null) {
+            CellInfoWcdma cellinfowcdma = (CellInfoWcdma) telephonyManager.getAllCellInfo().get(0);
+            CellSignalStrengthWcdma cellSignalStrengthCdma = cellinfowcdma.getCellSignalStrength();
+            return cellSignalStrengthCdma.getDbm();
+        }
+
+
+        return -10000;
+    }
+
+    public long getHeapSize(){
+        final Runtime runtime = Runtime.getRuntime();
+        if (runtime != null) {
+            final long usedMemInMB = (runtime.totalMemory() - runtime.freeMemory()) / 1048576L;
+            final long maxHeapSizeInMB = runtime.maxMemory() / 1048576L;
+            final long availHeapSizeInMB = maxHeapSizeInMB - usedMemInMB;
+            return availHeapSizeInMB;
+        }
+        return -10000;
     }
 }

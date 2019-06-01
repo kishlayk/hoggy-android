@@ -426,6 +426,8 @@ public class Connector extends Service {
                     editor.putBoolean(PREF_IS_SPEAKING, false);
                     editor.commit();
 
+                    
+
 
 
                 } else {

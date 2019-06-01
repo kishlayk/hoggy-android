@@ -13,7 +13,6 @@ import java.io.InputStream;
 
 public class Credentials {
 
-
     public static UserCredentials fromResource(Context context, int resourceId)
             throws IOException, JSONException {
         InputStream is = context.getResources().openRawResource(resourceId);

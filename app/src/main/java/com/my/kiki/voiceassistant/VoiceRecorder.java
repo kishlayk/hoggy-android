@@ -20,10 +20,12 @@ import android.content.SharedPreferences;
 import android.media.AudioFormat;
 import android.media.AudioRecord;
 import android.media.MediaRecorder;
+import android.os.StrictMode;
 import android.support.annotation.NonNull;
 import android.util.Log;
 
 import com.my.kiki.main.MainApplication;
+import com.my.kiki.utils.Utils;
 
 import static android.content.Context.MODE_PRIVATE;
 import static com.my.kiki.utils.Utils.PREF_IS_SPEAKING;
@@ -109,6 +111,7 @@ public class VoiceRecorder {
         // Start recording.
         mAudioRecord.startRecording();
         // Start processing the captured audio.
+
         mThread = new Thread(new ProcessVoice());
         mThread.start();
     }
@@ -194,9 +197,10 @@ public class VoiceRecorder {
                     final int size = mAudioRecord.read(mBuffer, 0, mBuffer.length);
                     final long now = System.currentTimeMillis();
 
-                    SharedPreferences prefs = MainApplication.getGlobalContext().getSharedPreferences(PREF_NAME, MODE_PRIVATE);
+//                    SharedPreferences prefs = MainApplication.getGlobalContext().getSharedPreferences(PREF_NAME, MODE_PRIVATE);
+//                    boolean ischeck = prefs.getBoolean(PREF_IS_SPEAKING, false);
 
-                    boolean ischeck = prefs.getBoolean(PREF_IS_SPEAKING, false);
+                    boolean ischeck = Utils.getInstance(MainApplication.getGlobalContext()).getBoolean(PREF_IS_SPEAKING);
 
                  //  Log.d("xyz123",ischeck+" ProcessVoice: "+isHearingVoice(mBuffer, size));
                     if (isHearingVoice(mBuffer, size) && !ischeck) {
