@@ -3,6 +3,8 @@ package com.my.kiki.main;
 import android.app.Application;
 import android.content.Context;
 
+import com.my.kiki.notification.SpeechServiceNotification;
+
 
 public class MainApplication extends Application {
 
@@ -15,6 +17,8 @@ public class MainApplication extends Application {
 
         context = null;
         context = getApplicationContext();
+
+        new SpeechServiceNotification(this).createNotificationChannel();
 
     }
 
@@ -45,6 +49,5 @@ public class MainApplication extends Application {
     public static Context getGlobalContext() {
         return context;
     }
-
 
 }

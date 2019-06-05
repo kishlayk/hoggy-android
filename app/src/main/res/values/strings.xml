@@ -8,6 +8,9 @@
     <string name="lbl_submit">Submit</string>
 
     <string name="title_home">Home</string>
+    <string name="notification_action_disconnect">Disconnect Toy</string>
+    <string name="toy_not_connected">Toy not connected !</string>
+    <string name="connected">Connected</string>
 
     <string name="err_fields">Fields Cannot be Blank</string>
     <string name="error_invalid_email">This email address is invalid</string>

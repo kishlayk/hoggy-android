@@ -65,7 +65,7 @@ public class BluetoothListAdapter extends RecyclerView.Adapter<BluetoothListAdap
     @Override
     public void onBindViewHolder(final MyViewHolder holder, final int position) {
 
-
+         holder.rootCardLayout.setEnabled(true);
         holder.rootCardLayout.setCardBackgroundColor(Color.parseColor("#ffffff"));
 
         /*if (optionsNameArr[position] != null) {
@@ -99,6 +99,7 @@ public class BluetoothListAdapter extends RecyclerView.Adapter<BluetoothListAdap
                 @Override
                 public void onClick(View v) {
                     bluetoothSelected.onBluetoothSelected(position);
+                    holder.rootCardLayout.setEnabled(false);
                 }
             });
 

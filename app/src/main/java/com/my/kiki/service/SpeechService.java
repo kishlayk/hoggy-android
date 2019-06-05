@@ -16,7 +16,6 @@
 
 package com.my.kiki.service;
 
-import android.Manifest;
 import android.app.Service;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
@@ -24,7 +23,6 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
-import android.content.pm.PackageManager;
 import android.media.AudioFormat;
 import android.media.AudioManager;
 import android.media.AudioTrack;
@@ -34,13 +32,8 @@ import android.os.Handler;
 import android.os.IBinder;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
-import android.support.v4.app.ActivityCompat;
-import android.telephony.CellInfoGsm;
-import android.telephony.CellSignalStrengthGsm;
-import android.telephony.TelephonyManager;
 import android.text.TextUtils;
 import android.util.Log;
-import android.widget.Toast;
 
 import com.google.assistant.embedded.v1alpha1.AudioInConfig;
 import com.google.assistant.embedded.v1alpha1.AudioOutConfig;
@@ -55,8 +48,7 @@ import com.my.kiki.R;
 import com.my.kiki.db.MyDatabase;
 import com.my.kiki.main.MainApplication;
 import com.my.kiki.model.PairedDevices;
-import com.my.kiki.ui.BluetoothListActivity;
-import com.my.kiki.ui.ConnectedToyActivity;
+import com.my.kiki.notification.SpeechServiceNotification;
 import com.my.kiki.utils.LogUtils;
 import com.my.kiki.utils.Utils;
 import com.my.kiki.voiceassistant.Credentials;
@@ -113,6 +105,10 @@ public class SpeechService extends Service {
 
         void onError();
 
+        void onConnecting();
+
+        void onConnected();
+
         void restartSpeechService();
 
     }
@@ -141,6 +137,7 @@ public class SpeechService extends Service {
             96000, 176400, 192000, 352800, 2822400, 5644800};
 
     private BluetoothDevice device;
+    SpeechServiceNotification notification;
 
 
     private final StreamObserver<ConverseResponse> mResponseObserver
@@ -174,7 +171,8 @@ public class SpeechService extends Service {
                     if (value.getResult().getVolumePercentage() != 0) {
                         int mVolumePercentage = value.getResult().getVolumePercentage();
                         Log.i(TAG, "assistant volume changed: " + mVolumePercentage);
-                        float newVolume = mAudioTrack.getMaxVolume() * mVolumePercentage / 100.0f;
+                        float newVolume = AudioTrack.getMaxVolume() * mVolumePercentage / 100.0f;
+                        Log.d(TAG,"new vol "+newVolume);
                         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
                             mAudioTrack.setVolume(newVolume);
                         }
@@ -353,10 +351,7 @@ public class SpeechService extends Service {
                 Log.v("is_test_am","playing...inresult");
             }
 
-
-
-
-
+           notification = new SpeechServiceNotification(this);
 // Request audio focus for playback
 
 
@@ -453,7 +448,7 @@ public class SpeechService extends Service {
                 .setAudioOutConfig(AudioOutConfig.newBuilder()
                         .setEncoding(AudioOutConfig.Encoding.LINEAR16)
                         .setSampleRateHertz(sampleRate)
-                      /*  .setVolumePercentage(DEFAULT_VOLUME)*/
+//                        .setVolumePercentage(100)
                         .build());
         if (vConversationState != null) {
             converseConfigBuilder.setConverseState(
@@ -670,14 +665,37 @@ public class SpeechService extends Service {
                     Log.i(TAG, "Bluetooth HFP Headset is connected");
                     handleBluetoothStateChange(BluetoothState.AVAILABLE);
                     bluetoothState=BluetoothState.AVAILABLE;
+                    try{
+                        notification.buildNotification("Online");
+                        for (Listener listener : mListeners) {
+                            listener.onConnected();
+                        }
+                    }catch (Exception e){
+                        e.printStackTrace();
+                    }
                     break;
                 case AudioManager.SCO_AUDIO_STATE_CONNECTING:
                     Log.i(TAG, "Bluetooth HFP Headset is connecting");
+                    try{
+                        for (Listener listener : mListeners) {
+                            listener.onConnecting();
+                        }
+                    }catch (Exception e){
+                        e.printStackTrace();
+                    }
                     handleBluetoothStateChange(BluetoothState.UNAVAILABLE);
                     break;
                 case AudioManager.SCO_AUDIO_STATE_DISCONNECTED:
                     Log.i(TAG, "Bluetooth HFP Headset is disconnected");
+                    notification.removeNotification(SpeechServiceNotification.SPEECH_NOTIFICATION_ID);
                     handleBluetoothStateChange(BluetoothState.UNAVAILABLE);
+                    try{
+                        for (Listener listener : mListeners) {
+                            listener.onVoiceRecordStop();
+                        }
+                    }catch (Exception e){
+                        e.printStackTrace();
+                    }
                     break;
                 case AudioManager.SCO_AUDIO_STATE_ERROR:
                     Log.i(TAG, "Bluetooth HFP Headset is in error state");

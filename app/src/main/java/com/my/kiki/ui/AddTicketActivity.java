@@ -6,6 +6,7 @@ import android.net.ConnectivityManager;
 import android.os.Bundle;
 
 import android.support.v7.app.AppCompatActivity;
+import android.util.Log;
 import android.view.View;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -17,6 +18,8 @@ import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.WriteBatch;
 import com.my.kiki.R;
 import com.my.kiki.databinding.ActivityAddTicketBinding;
+import com.my.kiki.mailclient.Config;
+import com.my.kiki.mailclient.SendMail;
 import com.my.kiki.model.TicketsModel;
 import com.my.kiki.utils.LogUtils;
 import com.my.kiki.utils.Utils;
@@ -49,6 +52,7 @@ public class AddTicketActivity extends AppCompatActivity implements View.OnClick
 
                     if (isInternetAvailable()){
                         addTicket();
+                        sendMailToSupport(binding.edtTitle.getText().toString(),binding.edtDescription.getText().toString());
                     }else {
                         Toast.makeText(this, getString(R.string.msg_no_internet), Toast.LENGTH_SHORT).show();
                     }
@@ -59,6 +63,12 @@ public class AddTicketActivity extends AppCompatActivity implements View.OnClick
                 finish();
                 break;
         }
+    }
+
+    private void sendMailToSupport(String title, String message) {
+        Log.d("addTicket",title + message);
+        SendMail mail = new SendMail(this, Config.toMailID,title,message);
+        mail.execute();
     }
 
     public void initToolbar() {

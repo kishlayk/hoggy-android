@@ -29,7 +29,8 @@
         <activity
             android:name=".ui.HomeActivity"
             android:keepScreenOn="true"
-            android:label="@string/title_home" />
+            android:label="@string/title_home"
+            android:launchMode="singleInstance"/>
         <activity android:name=".ui.ConnectToyActivity" />
         <activity android:name=".ui.SignupActivity" />
         <activity android:name=".ui.AddTicketActivity" />

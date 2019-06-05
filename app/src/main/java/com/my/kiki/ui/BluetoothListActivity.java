@@ -314,7 +314,8 @@ DialogPermission();
         switch (id) {
 
             case R.id.ivBack:
-                finish();
+//                finish();
+                onBackPressed();
                 break;
             case R.id.fab:
                 /*startActivityForResult(new Intent(this, BluetoothAvailableListActivity.class), REQUEST_CODE_AVAILABLE_DEVICES);*/
@@ -338,8 +339,9 @@ DialogPermission();
     @Override
     public void onBluetoothSelected(int pos) {
 
-
         if(isInternetAvailable()){
+
+            Log.d("bluetoothList","selected()");
 
             selectedPos = pos;
             Intent intent = new Intent(this, Connector.class);
@@ -350,7 +352,6 @@ DialogPermission();
             startService(intent);
 
         }else{
-
             Toast.makeText(this, getString(R.string.msg_no_internet), Toast.LENGTH_SHORT).show();
         }
 

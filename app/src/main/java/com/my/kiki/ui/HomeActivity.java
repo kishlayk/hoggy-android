@@ -1,11 +1,11 @@
 package com.my.kiki.ui;
 
 import android.Manifest;
-import android.bluetooth.BluetoothA2dp;
+import android.animation.Animator;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
-import android.bluetooth.BluetoothManager;
-import android.bluetooth.BluetoothProfile;
+import android.bluetooth.BluetoothGatt;
+import android.bluetooth.BluetoothGattCallback;
 import android.content.BroadcastReceiver;
 import android.content.ComponentName;
 import android.content.Context;
@@ -13,55 +13,49 @@ import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.ServiceConnection;
-import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.databinding.DataBindingUtil;
 import android.media.AudioManager;
 import android.net.ConnectivityManager;
+import android.net.NetworkInfo;
 import android.net.Uri;
-import android.os.Build;
+import android.net.wifi.WifiManager;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.IBinder;
-import android.os.StrictMode;
-import android.os.StrictMode.ThreadPolicy;
 import android.provider.Settings;
-import android.support.annotation.RequiresApi;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AlertDialog.Builder;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.GridLayoutManager;
+import android.telephony.TelephonyManager;
 import android.util.Log;
 import android.view.Gravity;
 import android.view.View;
 import android.view.WindowManager;
 import android.widget.Button;
 import android.widget.LinearLayout;
+import android.widget.ProgressBar;
+import android.widget.RelativeLayout;
+import android.widget.TextView;
 import android.widget.Toast;
 
-import com.bumptech.glide.util.Util;
 import com.my.kiki.R;
 import com.my.kiki.adapter.OptionsAdapter;
-import com.my.kiki.bluetooth.BluetoothController;
 import com.my.kiki.databinding.ActivityHomeBinding;
-import com.my.kiki.db.MyDatabase;
-import com.my.kiki.main.MainApplication;
-import com.my.kiki.model.PairedDevices;
 import com.my.kiki.service.Connector;
 import com.my.kiki.service.SpeechService;
 import com.my.kiki.utils.Utils;
 import com.my.kiki.voiceassistant.MessageDialogFragment;
 import com.my.kiki.voiceassistant.VoiceRecorder;
 
-import java.util.List;
-
-import static android.bluetooth.BluetoothProfile.A2DP;
-import static android.bluetooth.BluetoothProfile.GATT;
+import static android.bluetooth.BluetoothProfile.STATE_CONNECTED;
+import static com.my.kiki.notification.SpeechServiceNotification.ACTION_NAME;
 import static com.my.kiki.utils.Utils.PREF_IS_ERROR;
 import static com.my.kiki.utils.Utils.PREF_IS_SPEAKING;
-import static com.my.kiki.utils.Utils.PREF_NAME;
+import static com.my.kiki.utils.Utils.PREF_IS_TOY_CONNECTED;
 import static com.my.kiki.utils.Utils.isInternetAvailable;
 import static com.my.kiki.utils.Utils.isToyConnected;
 
@@ -79,7 +73,11 @@ public class HomeActivity extends AppCompatActivity implements OptionsAdapter.Op
     private int[] imagesArr = {R.drawable.ic_bluetooth, R.drawable.ic_google_assistant, R.drawable.ic_ticket, R.drawable.ic_usage_manual/*, R.drawable.ic_launcher*/};
     private int[] layoutBgArr = {R.drawable.bg_bluetooth_layout, R.drawable.bg_tickets_list_layout, R.drawable.bg_usage_manual_layout/*, R.drawable.ic_launcher*/};
     BluetoothAdapter mBluetoothAdapter;
-
+    private TextView alertTV;
+    private RelativeLayout alertLayout;
+    private TextView disconnectTV;
+    private ProgressBar progressBar;
+    private BluetoothDevice myDevice;
 
     private final ServiceConnection mServiceConnection = new ServiceConnection() {
         @Override
@@ -145,6 +143,7 @@ public class HomeActivity extends AppCompatActivity implements OptionsAdapter.Op
                     mSpeechService.finishRecognizing();
                     // Stop listening to voice
                     Utils.getInstance(HomeActivity.this).setBoolean(PREF_IS_SPEAKING, true);
+
                 }
 
 
@@ -194,6 +193,10 @@ public class HomeActivity extends AppCompatActivity implements OptionsAdapter.Op
 
         binding.optionsRv.setAdapter(optionsAdapter);
 
+        alertTV = findViewById(R.id.home_alerts_text);
+        alertLayout = findViewById(R.id.home_alerts);
+        disconnectTV = findViewById(R.id.tvDisconnect);
+        progressBar = findViewById(R.id.progressBar);
 
 //        if (Utils.getInstance(this).getBoolean(Utils.PREF_IS_TOY_CONNECTED)) {
 //            binding.rlToyOptions.setVisibility(View.VISIBLE);
@@ -216,6 +219,15 @@ public class HomeActivity extends AppCompatActivity implements OptionsAdapter.Op
                 " "+Utils.getInstance(this).getString(Utils.PREF_USER_BIRTHDAY)+
                 " "+Utils.getInstance(this).getString(Utils.PREF_USER_CLASS)
         );
+
+        BluetoothAdapter.LeScanCallback scanCallback =
+             new BluetoothAdapter.LeScanCallback() {
+                 @Override
+                 public void onLeScan(BluetoothDevice device, int rssi, byte[] scanRecord) {
+                         myDevice = device;
+                 }
+             };
+        mBluetoothAdapter.startLeScan(scanCallback);
 //        IntentFilter filter = new IntentFilter();
 //        filter.addAction(BluetoothDevice.ACTION_ACL_CONNECTED);
 //        filter.addAction(BluetoothDevice.ACTION_ACL_DISCONNECT_REQUESTED);
@@ -245,6 +257,8 @@ public class HomeActivity extends AppCompatActivity implements OptionsAdapter.Op
         IntentFilter filter = new IntentFilter();
         filter.addAction(Utils.BROAD_CAST_RECEIVER_DEVICE_CONNECTED);
         filter.addAction( ConnectivityManager.CONNECTIVITY_ACTION);
+        filter.addAction(Utils.DISCONNECT_TOY_RECEIVER);
+        filter.addAction(BluetoothDevice.ACTION_FOUND);
         registerReceiver(mBroadcastReceiver, filter);
 
         Log.v("is_stop","listen_start");
@@ -290,11 +304,19 @@ public class HomeActivity extends AppCompatActivity implements OptionsAdapter.Op
         Log.v("xyz123xyz",Utils.getInstance(this).getBoolean(Utils.PREF_IS_TOY_CONNECTED)+"");
         if (Utils.getInstance(this).getBoolean(Utils.PREF_IS_TOY_CONNECTED)) {
             binding.rlToyOptions.setVisibility(View.VISIBLE);
+            disconnectTV.setVisibility(View.VISIBLE);
+            progressBar.setVisibility(View.GONE);
+
+            if(isInternetAvailable())
+            showAlert();
+
+//            if(!isInternetAvailable())
+//                showAlert(getString(R.string.msg_no_internet));
+//            else showAlert(getString(R.string.connected));
         } else {
             binding.rlToyOptions.setVisibility(View.GONE);
-
+            showAlert(getString(R.string.toy_not_connected));
         }
-
 
         if (Utils.getInstance(this).getString(Utils.PREF_CONNECTED_DEVICE_NAME) != null && !Utils.getInstance(this).getString(Utils.PREF_CONNECTED_DEVICE_NAME).equals("")) {
             binding.tvToyName.setText("Hoggy12");
@@ -318,15 +340,16 @@ public class HomeActivity extends AppCompatActivity implements OptionsAdapter.Op
 
                     if(isInternetAvailable()) {
                         if(Utils.isToyConnected(this)){
+//                            checkBluetoothConnection();
                             startActivity(new Intent(this, ConnectedToyActivity.class));
                         }else{
                             startActivity(new Intent(this, BluetoothListActivity.class));
                         }
                         finish();
-                    }else{
-                        Toast.makeText(HomeActivity.this, getString(R.string.msg_no_internet), Toast.LENGTH_SHORT).show();
-
-                    }
+                    }else if(!isInternetAvailable()) {
+                        showAlert(getString(R.string.msg_no_internet));
+//                        Toast.makeText(HomeActivity.this, getString(R.string.msg_no_internet), Toast.LENGTH_SHORT).show();
+                    }else hideAlert();
 
                 }
                 break;
@@ -336,6 +359,63 @@ public class HomeActivity extends AppCompatActivity implements OptionsAdapter.Op
                 break;
         }
     }
+
+  /*  private void checkBluetoothConnection() {
+       BluetoothGattCallback bluetoothGattCallback = new BluetoothGattCallback() {
+           @Override
+           public void onConnectionStateChange(BluetoothGatt gatt, int status, int newState) {
+               super.onConnectionStateChange(gatt, status, newState);
+               if (newState == STATE_CONNECTED) {
+                   Log.d("checkblutooth","connected");
+                   boolean rssiStatus = gatt.readRemoteRssi();
+               }
+           }
+           @Override
+            public void onReadRemoteRssi(BluetoothGatt gatt, int rssi, int status) {
+                super.onReadRemoteRssi(gatt, rssi, status);
+                if(status == BluetoothGatt.GATT_SUCCESS)
+                    Log.d("bluetooth rssi",String.valueOf(rssi));
+            }
+        };
+       try {
+           myDevice.connectGatt(this, true, bluetoothGattCallback);
+       }catch(Exception e){
+           Log.e("homeActivity",e.getMessage());
+       }
+    }
+    */
+
+    public void showAlert(final String msg){
+        alertLayout.setAlpha(0f);
+        alertLayout.setVisibility(View.VISIBLE);
+        alertLayout.animate().alpha(1f).setDuration(400).setListener(null) ;
+                alertTV.setText(msg);
+    }
+
+   public void hideAlert(){
+        alertLayout.animate().alpha(0f).setDuration(500).setListener(new Animator.AnimatorListener() {
+            @Override
+            public void onAnimationStart(Animator animation) {
+
+            }
+
+            @Override
+            public void onAnimationEnd(Animator animation) {
+                alertLayout.setVisibility(View.INVISIBLE);
+            }
+
+            @Override
+            public void onAnimationCancel(Animator animation) {
+
+            }
+
+            @Override
+            public void onAnimationRepeat(Animator animation) {
+
+            }
+        });
+    }
+
 
     @Override
     public void onClick(View v) {
@@ -398,6 +478,7 @@ public class HomeActivity extends AppCompatActivity implements OptionsAdapter.Op
 
             stopVoiceRecorder();
             binding.rlToyOptions.setVisibility(View.GONE);
+            alertLayout.setVisibility(View.INVISIBLE);
             Utils.getInstance(HomeActivity.this).setBoolean(Utils.PREF_IS_TOY_CONNECTED, false);
             Utils.getInstance(HomeActivity.this).setString(Utils.PREF_CONNECTED_DEVICE_MAC, "");
             Utils.getInstance(HomeActivity.this).setString(Utils.PREF_CONNECTED_DEVICE_NAME, "");
@@ -408,6 +489,18 @@ public class HomeActivity extends AppCompatActivity implements OptionsAdapter.Op
 
     }
 
+    @Override
+    protected void onNewIntent(Intent intent)  {
+        super.onNewIntent(intent);
+        String action = intent.getStringExtra("action");
+
+        try {
+            if (action.equalsIgnoreCase(ACTION_NAME))
+                disConnectDevice();
+        }catch(NullPointerException e){
+            Log.d("notification click", "ignore");
+        }
+    }
 
     //toy connection & internet connection
     private BroadcastReceiver mBroadcastReceiver = new BroadcastReceiver() {
@@ -415,6 +508,17 @@ public class HomeActivity extends AppCompatActivity implements OptionsAdapter.Op
         public void onReceive(Context context, Intent intent) {
             if (intent.getExtras() != null) {
                 String action = intent.getAction();
+
+                if(action.equals(BluetoothDevice.ACTION_FOUND)){
+                    int  rssi = intent.getShortExtra(BluetoothDevice.EXTRA_RSSI,Short.MIN_VALUE);
+                    Log.d("home","bluetooth strength:" + rssi);
+                }
+
+                if(action.equals(Utils.DISCONNECT_TOY_RECEIVER)){
+                    Log.d("homeActivity","disconnect");
+                    disConnectDevice();
+                    return;
+                }
                 if (ConnectivityManager.CONNECTIVITY_ACTION.equals(action)) {
                     if(isInternetAvailable()){
                         final Handler handler = new Handler();
@@ -426,10 +530,16 @@ public class HomeActivity extends AppCompatActivity implements OptionsAdapter.Op
                             }
                         }, 500);
 
-                    }else{
-                        Toast.makeText(HomeActivity.this, getString(R.string.msg_no_internet), Toast.LENGTH_SHORT).show();
-                    }
+//                        if(intent.getExtras().getBoolean(ConnectivityManager.EXTRA_NO_CONNECTIVITY)){
+//                            showAlert(getString(R.string.msg_no_internet));
+//                        }
 
+                       showAlert();
+
+                    }else if(!isInternetAvailable()){
+                        showAlert(getString(R.string.msg_no_internet));
+//                        Toast.makeText(HomeActivity.this, getString(R.string.msg_no_internet), Toast.LENGTH_SHORT).show();
+                    }else hideAlert();
 
                 }else {
 
@@ -445,6 +555,8 @@ public class HomeActivity extends AppCompatActivity implements OptionsAdapter.Op
 
                         binding.rlToyOptions.setVisibility(View.GONE);
                         stopVoiceRecorder();
+
+                        showAlert(getString(R.string.toy_not_connected));
 
                     } else {
 
@@ -465,10 +577,13 @@ public class HomeActivity extends AppCompatActivity implements OptionsAdapter.Op
 
                                 }
                             }, 500);
+                            if(isSignalWeak())
+                                showAlert("Weak Network Signal");
 
-                        }else{
-                            Toast.makeText(HomeActivity.this, getString(R.string.msg_no_internet), Toast.LENGTH_SHORT).show();
-                        }
+                        }else if(!isInternetAvailable()){
+                            showAlert(getString(R.string.msg_no_internet));
+//                            Toast.makeText(HomeActivity.this, getString(R.string.msg_no_internet), Toast.LENGTH_SHORT).show();
+                        }else hideAlert();
 
 
                     }
@@ -480,6 +595,73 @@ public class HomeActivity extends AppCompatActivity implements OptionsAdapter.Op
 
 
     };
+
+    public void showAlert(){
+        if(isSignalWeak())
+            showAlert("Weak Network Signal");
+        else if(isToyConnectedPrefs())
+            showAlert(getString(R.string.connected));
+        else showAlert(getString(R.string.toy_not_connected));
+    }
+
+    private boolean isSignalWeak() {
+        boolean isWeak = false;
+        ConnectivityManager cm = (ConnectivityManager) getApplicationContext().getSystemService(Context.CONNECTIVITY_SERVICE);
+        NetworkInfo info = cm.getActiveNetworkInfo();
+        if (info != null && info.getType() == ConnectivityManager.TYPE_WIFI) {
+            if (getWifiLevel() < 2)
+                isWeak = true;
+            isWeak = false;
+        }else{
+            if(info != null && info.getType() == ConnectivityManager.TYPE_MOBILE){
+                Log.d("network type",info.getSubtypeName());
+                switch(info.getSubtype()){
+                    case TelephonyManager.NETWORK_TYPE_1xRTT:
+                        isWeak = true; // ~ 50-100 kbps
+                    case TelephonyManager.NETWORK_TYPE_CDMA:
+                        isWeak = true; // ~ 14-64 kbps
+                    case TelephonyManager.NETWORK_TYPE_EDGE:
+                        isWeak = true; // ~ 50-100 kbps
+                    case TelephonyManager.NETWORK_TYPE_EVDO_0:
+                        isWeak = false;// ~ 400-1000 kbps
+                    case TelephonyManager.NETWORK_TYPE_EVDO_A:
+                        isWeak = false; // ~ 600-1400 kbps
+                    case TelephonyManager.NETWORK_TYPE_GPRS:
+                        isWeak = true; // ~ 100 kbps
+                    case TelephonyManager.NETWORK_TYPE_HSDPA:
+                        isWeak = false; // ~ 2-14 Mbps
+                    case TelephonyManager.NETWORK_TYPE_HSPA:
+                        isWeak = false;// ~ 700-1700 kbps
+                    case TelephonyManager.NETWORK_TYPE_HSUPA:
+                        isWeak = false; // ~ 1-23 Mbps
+                    case TelephonyManager.NETWORK_TYPE_UMTS:
+                        isWeak = false; // ~ 400-7000 kbps
+                    case TelephonyManager.NETWORK_TYPE_EHRPD:
+                        isWeak = false; // ~ 1-2 Mbps
+                    case TelephonyManager.NETWORK_TYPE_EVDO_B:
+                        isWeak = false; // ~ 5 Mbps
+                    case TelephonyManager.NETWORK_TYPE_HSPAP:
+                        isWeak = false; // ~ 10-20 Mbps
+                    case TelephonyManager.NETWORK_TYPE_IDEN:
+                        isWeak = true; // ~25 kbps
+                    case TelephonyManager.NETWORK_TYPE_LTE:
+                        isWeak = false; // ~ 10+ Mbps
+                    case TelephonyManager.NETWORK_TYPE_UNKNOWN:
+                        isWeak = true;
+                    default:
+                        isWeak = false;
+                }
+            }
+        }
+        return isWeak;
+    }
+
+    public int getWifiLevel() {
+        WifiManager wifiManager = (WifiManager)getApplicationContext().getSystemService(Context.WIFI_SERVICE);
+        int linkSpeed = wifiManager.getConnectionInfo().getRssi();
+        int level = WifiManager.calculateSignalLevel(linkSpeed, 5);
+        return level;
+    }
 
     private void startVoiceRecorder() {
         Utils.getInstance(HomeActivity.this).setBoolean(PREF_IS_SPEAKING, false);
@@ -582,6 +764,8 @@ public class HomeActivity extends AppCompatActivity implements OptionsAdapter.Op
                 @Override
                 public void onVoiceRecordStart() {
 
+                    Log.d("home","onVoiceRecordStart()");
+
                     if (Utils.getInstance(HomeActivity.this).getBoolean(Utils.PREF_IS_TOY_CONNECTED)) {
                         binding.rlToyOptions.setVisibility(View.VISIBLE);
                         startRecord();
@@ -593,7 +777,6 @@ public class HomeActivity extends AppCompatActivity implements OptionsAdapter.Op
 
                 @Override
                 public void onVoiceRecordStop() {
-
 
                     binding.rlToyOptions.setVisibility(View.GONE);
                     stopVoiceRecorder();
@@ -619,9 +802,30 @@ public class HomeActivity extends AppCompatActivity implements OptionsAdapter.Op
 
                 @Override
                 public void onError(){
+                    Log.w("home","onError()");
                     mSpeechService.stopRecognising();
                     int sampleRate = mVoiceRecorder==null?mVoiceRecorder.getSampleRate():16000;
                     mSpeechService.startRecognizing(sampleRate);
+                }
+
+                @Override
+                public void onConnecting() {
+                    disconnectTV.setVisibility(View.INVISIBLE);
+                    progressBar.setVisibility(View.VISIBLE);
+                    if (Utils.getInstance(HomeActivity.this).getBoolean(Utils.PREF_IS_TOY_CONNECTED)) {
+                        showAlert("Connecting...");
+                    }    else
+                        showAlert(getString(R.string.toy_not_connected));
+                }
+
+                @Override
+                public void onConnected() {
+                    Log.d("home","connected");
+                    if (isInternetAvailable() && Utils.getInstance(HomeActivity.this).getBoolean(Utils.PREF_IS_TOY_CONNECTED)) {
+                        showAlert(getString(R.string.connected));
+                    }
+                    disconnectTV.setVisibility(View.VISIBLE);
+                    progressBar.setVisibility(View.GONE);
                 }
 
             };
@@ -640,6 +844,10 @@ public class HomeActivity extends AppCompatActivity implements OptionsAdapter.Op
             startVoiceRecorder();
             isProcessAudio = true;
         }
+    }
+
+    boolean isToyConnectedPrefs(){
+       return Utils.getInstance(HomeActivity.this).getBoolean(Utils.PREF_IS_TOY_CONNECTED);
     }
     @Override
     public void onRequestPermissionsResult(int requestCode,  String[] permissions,  int[] grantResults) {
@@ -666,7 +874,7 @@ public class HomeActivity extends AppCompatActivity implements OptionsAdapter.Op
 
         //Give the Dialog a Title
         builder.setTitle("Permission");
-        builder.setMessage("As the Toy is a Bluetooth Toy, we require Bluetooth & Location Permissons");
+        builder.setMessage("As the Toy is a Bluetooth Toy, we require Bluetooth & Location Permissions");
         builder.setCancelable(false);
         //Set the Dynamically created layout as the Dialogs view
 
@@ -734,6 +942,10 @@ public class HomeActivity extends AppCompatActivity implements OptionsAdapter.Op
         LinearLayout.LayoutParams positiveButtonLL = (LinearLayout.LayoutParams) positiveButton.getLayoutParams();
         positiveButtonLL.gravity = Gravity.CENTER;
         positiveButton.setLayoutParams(positiveButtonLL);
+    }
+
+    enum networkState {
+        CONNECTED, NOT_CONNECTED
     }
 
 }

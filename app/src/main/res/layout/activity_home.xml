@@ -14,11 +14,33 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content" />
 
+    <RelativeLayout
+        android:id="@+id/home_alerts"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:visibility="visible"
+        android:background="@color/black"
+        android:layout_below="@+id/lyToolBar"
+        >
+
+        <TextView
+            android:id="@+id/home_alerts_text"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Hello from hoggy"
+            android:textColor="@android:color/white"
+            android:textSize="21sp"
+            android:padding="4dp"
+            android:fontFamily="@font/blanch_caps"
+            android:layout_centerInParent="true"/>
+
+    </RelativeLayout>
+
     <android.support.v7.widget.RecyclerView
         android:id="@+id/optionsRv"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:layout_below="@+id/lyToolBar"
+        android:layout_below="@+id/home_alerts"
         android:layout_above="@+id/rlToyOptions"
         android:clipToPadding="false"
         android:padding="@dimen/margin_10">
@@ -88,6 +110,18 @@
             android:layout_marginTop="@dimen/margin_10"
             android:layout_marginRight="@dimen/margin_5"
             android:layout_alignParentRight="true" />
+
+        <ProgressBar
+            android:id="@+id/progressBar"
+            android:layout_width="30dp"
+            android:layout_height="30dp"
+            android:visibility="gone"
+            android:layout_below="@+id/tvTroubleShoot"
+            android:layout_marginLeft="@dimen/margin_5"
+            android:layout_marginTop="@dimen/margin_10"
+            android:layout_marginRight="@dimen/margin_5"
+            android:layout_alignParentEnd="true"
+            />
 
         <TextView
             android:id="@+id/tvDisconnect"

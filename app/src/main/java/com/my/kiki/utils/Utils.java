@@ -90,6 +90,8 @@ public class Utils {
     public static final String TOY_DEVICE_OBJECT = "toy_device_object";
     public static boolean temp;
 
+    public static final String DISCONNECT_TOY_RECEIVER = "com.hoggy.disconnect_toy_broadcast";
+
     public Utils(Context context) {
         this.context = context;
         pref = context.getSharedPreferences(PREF_NAME, MODE_PRIVATE);
@@ -139,8 +141,6 @@ public class Utils {
 
     public static boolean isToyConnected(){
 
-
-
         BluetoothAdapter BA = BluetoothAdapter.getDefaultAdapter();
         BA.enable();
         Set s = BA.getBondedDevices();
@@ -167,7 +167,12 @@ public class Utils {
 
     public static boolean toyCorrectlyConnected(BluetoothDevice device, Editor editor){
 
-        if(device.getName().isEmpty() || !device.getName().equals("Pet Singer")){
+        try {
+            if (device.getName().isEmpty() || !device.getName().equals("Pet Singer")) {
+                return false;
+            }
+        }catch(NullPointerException e){
+            Log.d("excp","null");
             return false;
         }
         //store current device in prefrences
