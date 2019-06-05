@@ -16,15 +16,15 @@
 
 package com.my.kiki.service;
 
-import android.Manifest;
 import android.app.Service;
+import android.bluetooth.BluetoothA2dp;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
+import android.bluetooth.BluetoothHeadset;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
-import android.content.pm.PackageManager;
 import android.media.AudioFormat;
 import android.media.AudioManager;
 import android.media.AudioTrack;
@@ -34,13 +34,8 @@ import android.os.Handler;
 import android.os.IBinder;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
-import android.support.v4.app.ActivityCompat;
-import android.telephony.CellInfoGsm;
-import android.telephony.CellSignalStrengthGsm;
-import android.telephony.TelephonyManager;
 import android.text.TextUtils;
 import android.util.Log;
-import android.widget.Toast;
 
 import com.google.assistant.embedded.v1alpha1.AudioInConfig;
 import com.google.assistant.embedded.v1alpha1.AudioOutConfig;
@@ -51,12 +46,12 @@ import com.google.assistant.embedded.v1alpha1.ConverseState;
 import com.google.assistant.embedded.v1alpha1.EmbeddedAssistantGrpc;
 import com.google.auth.oauth2.GoogleCredentials;
 import com.google.protobuf.ByteString;
+import com.my.kiki.BuildConfig;
 import com.my.kiki.R;
 import com.my.kiki.db.MyDatabase;
 import com.my.kiki.main.MainApplication;
 import com.my.kiki.model.PairedDevices;
-import com.my.kiki.ui.BluetoothListActivity;
-import com.my.kiki.ui.ConnectedToyActivity;
+import com.my.kiki.receiver.ACLReceiver;
 import com.my.kiki.utils.LogUtils;
 import com.my.kiki.utils.Utils;
 import com.my.kiki.voiceassistant.Credentials;
@@ -128,13 +123,15 @@ public class SpeechService extends Service {
     private final ArrayList<Listener> mListeners = new ArrayList<>();
     private EmbeddedAssistantGrpc.EmbeddedAssistantStub mApi;
     private static Handler mHandler;
-    private BluetoothState bluetoothState = BluetoothState.UNAVAILABLE;
+    private Utils.BluetoothState bluetoothState = Utils.BluetoothState.UNAVAILABLE;
 
-    private int DEFAULT_VOLUME = 100;
+    private int DEFAULT_VOLUME = 1000;
     //private static int mVolumePercentage = 100; // for volume command
     AudioManager.OnAudioFocusChangeListener afChangeListener;
     AudioTrack mAudioTrack;//audiotracker
     AudioManager audioManager;
+
+    ACLReceiver receiver;
 
     private final int validSampleRates[] = new int[]{8000, 11025, 16000, 22050,
             32000, 37800, 44056, 44100, 47250, 48000, 50000, 50400, 88200,
@@ -148,10 +145,11 @@ public class SpeechService extends Service {
         @Override
         public void onNext(ConverseResponse value) {
 
-            if (bluetoothState != BluetoothState.AVAILABLE) {
-                return;
+            if (Utils.isBuildTypeNoBluetooth()) {
+                if (bluetoothState != Utils.BluetoothState.AVAILABLE) {
+                    return;
+                }
             }
-            //Log.e(TAG,"Event value "+value.getConverseResponseCase()+"");
             switch (value.getConverseResponseCase()) {
                 case EVENT_TYPE:
                     // Log.d(TAG, "converse response event: " + value.getEventType());
@@ -278,14 +276,35 @@ public class SpeechService extends Service {
         super.onCreate();
         Log.i("Speech Service ","onCreate");
 
-        IntentFilter filter = new IntentFilter();
-        filter.addAction(BluetoothDevice.ACTION_ACL_CONNECTED);
-        filter.addAction(BluetoothDevice.ACTION_ACL_DISCONNECT_REQUESTED);
-        filter.addAction(BluetoothDevice.ACTION_ACL_DISCONNECTED);
+        receiver = new ACLReceiver(MainApplication.getGlobalContext(), new ACLReceiver.Listener() {
+            @Override
+            public void onConnected() {
+                for (Listener listener : mListeners) {
+                    listener.onVoiceRecordStart();
+                }
+            }
 
-        this.registerReceiver(mReceiver, filter);
-        registerReceiver(bluetoothStateReceiver, new IntentFilter(
+            @Override
+            public void onDisconnected() {
+                for (Listener listener : mListeners) {
+                    listener.onVoiceRecordStop();
+                }
+            }
+        });
+
+        //bluetooth sco receiver
+        this.registerReceiver(scoReceiver, new IntentFilter(
                 AudioManager.ACTION_SCO_AUDIO_STATE_UPDATED));
+
+        //bluetooth a2dp filter
+/*        IntentFilter a2dpfilter = new IntentFilter();
+        a2dpfilter.addAction(BluetoothA2dp.ACTION_CONNECTION_STATE_CHANGED);
+        a2dpfilter.addAction(BluetoothA2dp.ACTION_PLAYING_STATE_CHANGED);
+        a2dpfilter.addAction(BluetoothHeadset.ACTION_AUDIO_STATE_CHANGED);
+        a2dpfilter.addAction(BluetoothHeadset.ACTION_CONNECTION_STATE_CHANGED);
+        this.registerReceiver(a2dpHspReceiver,a2dpfilter);*/
+
+
         mHandler = new Handler();
         fetchAccessToken();
 
@@ -299,7 +318,7 @@ public class SpeechService extends Service {
 
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
                 mAudioTrack.setVolume(DEFAULT_VOLUME);
-//                audioManager.setStreamVolume(3, audioManager.getStreamMaxVolume(3), 0);
+                audioManager.setStreamVolume(3, audioManager.getStreamMaxVolume(3), 0);
             }
 
             mAudioTrack.play();
@@ -353,13 +372,6 @@ public class SpeechService extends Service {
                 Log.v("is_test_am","playing...inresult");
             }
 
-
-
-
-
-// Request audio focus for playback
-
-
         }catch (Exception e){
             e.printStackTrace();
         }
@@ -369,8 +381,12 @@ public class SpeechService extends Service {
     public void onDestroy() {
         super.onDestroy();
         stopRecognising();
-        unregisterReceiver(mReceiver);
-        unregisterReceiver(bluetoothStateReceiver);
+        try {
+            receiver.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        unregisterReceiver(scoReceiver);
     }
 
     @Nullable
@@ -408,9 +424,6 @@ public class SpeechService extends Service {
             Log.e(TAG, "SCO ist not available, recording is not possible");
         //    Toast.makeText(this, "SCO ist not available, recording is not possible!", Toast.LENGTH_SHORT);
             return;
-        }else {
-//            Log.i(TAG, "SCO  available, recording is possible");
-//            Toast.makeText(this, "SCO available, recording is possible!", Toast.LENGTH_SHORT);
         }
 
         if (!audioManager.isBluetoothScoOn()) {
@@ -432,18 +445,20 @@ public class SpeechService extends Service {
     private ByteString vConversationState = null;
 
     public void startRecognizing(int sampleRate) {
-        activateBluetoothSco();
+        if (Utils.isBuildTypeNoBluetooth()) {
+            audioManager.setSpeakerphoneOn(true);
+        } else{
+            activateBluetoothSco();
+        }
 
         if (mApi == null) {
             Log.w(TAG, "API not ready. Ignoring the request.");
             return;
         }
-        //Log.d(TAG,"request sending");
         for (Listener listener : mListeners) {
             listener.onRequestStart();
-           // Log.d(TAG,"request sending");
         }
-        // Configure the API
+
         mRequestObserver = mApi.converse(mResponseObserver);
         ConverseConfig.Builder converseConfigBuilder =ConverseConfig.newBuilder()
                 .setAudioInConfig(AudioInConfig.newBuilder()
@@ -658,7 +673,7 @@ public class SpeechService extends Service {
     }
 
 
-    private final BroadcastReceiver bluetoothStateReceiver = new BroadcastReceiver() {
+    private final BroadcastReceiver scoReceiver = new BroadcastReceiver() {
 
 
         @Override
@@ -668,25 +683,25 @@ public class SpeechService extends Service {
             switch (state) {
                 case AudioManager.SCO_AUDIO_STATE_CONNECTED:
                     Log.i(TAG, "Bluetooth HFP Headset is connected");
-                    handleBluetoothStateChange(BluetoothState.AVAILABLE);
-                    bluetoothState=BluetoothState.AVAILABLE;
+                    handleBluetoothStateChange(Utils.BluetoothState.AVAILABLE);
+                    bluetoothState= Utils.BluetoothState.AVAILABLE;
                     break;
                 case AudioManager.SCO_AUDIO_STATE_CONNECTING:
                     Log.i(TAG, "Bluetooth HFP Headset is connecting");
-                    handleBluetoothStateChange(BluetoothState.UNAVAILABLE);
+                    handleBluetoothStateChange(Utils.BluetoothState.UNAVAILABLE);
                     break;
                 case AudioManager.SCO_AUDIO_STATE_DISCONNECTED:
                     Log.i(TAG, "Bluetooth HFP Headset is disconnected");
-                    handleBluetoothStateChange(BluetoothState.UNAVAILABLE);
+                    handleBluetoothStateChange(Utils.BluetoothState.UNAVAILABLE);
                     break;
                 case AudioManager.SCO_AUDIO_STATE_ERROR:
                     Log.i(TAG, "Bluetooth HFP Headset is in error state");
-                    handleBluetoothStateChange(BluetoothState.UNAVAILABLE);
+                    handleBluetoothStateChange(Utils.BluetoothState.UNAVAILABLE);
                     break;
             }
         }
 
-        private void handleBluetoothStateChange(BluetoothState state) {
+        private void handleBluetoothStateChange(Utils.BluetoothState state) {
 
             if (bluetoothState == state) {
                 return;
@@ -697,71 +712,10 @@ public class SpeechService extends Service {
         }
     };
 
-    private final BroadcastReceiver mReceiver = new BroadcastReceiver() {
+    private final BroadcastReceiver a2dpHspReceiver = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
-            String action = intent.getAction();
-            device = intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE);
-            LogUtils.i("BluetoothListActivity"+" mReceiver1239 SpeechService "+action);
-            if (BluetoothDevice.ACTION_FOUND.equals(action)) {
-                //Device found
-                LogUtils.i("BluetoothListActivity"+" mReceiver onReceive Device found "+device.getAddress()+ " "+device.getName());
-            }
-            else if (BluetoothDevice.ACTION_ACL_CONNECTED.equals(action)) {
-                //Device is now connected
-                LogUtils.i("BluetoothListActivity"+" mReceiver onReceive Device is now connected "+device.getAddress()+ " "+device.getName());
-                MyDatabase db;
-                db = MyDatabase.getDataBase(MainApplication.getGlobalContext());
-                List<PairedDevices> pairedDevicesList = db.pairedDevicesDAO().getAll();
-                if (pairedDevicesList.size() > 0) {
-                    for (int i=0;i<pairedDevicesList.size();i++) {
-                        Log.v("is_data_body",pairedDevicesList.get(i).getDeviceName()+"");
-                        if (pairedDevicesList.get(i).getDeviceName().equals(device.getName())){
-                            Utils.getInstance(MainApplication.getGlobalContext()).setString(Utils.PREF_CONNECTED_DEVICE_MAC, device.getAddress());
-                            Utils.getInstance(MainApplication.getGlobalContext()).setString(Utils.PREF_CONNECTED_DEVICE_NAME, device.getName());
-                            Utils.getInstance(MainApplication.getGlobalContext()).setBoolean(Utils.PREF_IS_TOY_CONNECTED, true);
-                        }
-                    }
-                }
-//
-//                    //startActivity(new Intent(MainApplication.getGlobalContext(), ConnectedToyActivity.class));
-                    try{
-                        for (Listener listener : mListeners) {
-                            listener.onVoiceRecordStart();
-                        }
-                    }catch (Exception e){
-                        e.printStackTrace();
-                    }
-
-            }
-            else if (BluetoothAdapter.ACTION_DISCOVERY_FINISHED.equals(action)) {
-                //Done searching
-                LogUtils.i("BluetoothListActivity"+" mReceiver onReceive Done searching "+device.getAddress()+ " "+device.getName());
-            }
-            else if (BluetoothDevice.ACTION_ACL_DISCONNECT_REQUESTED.equals(action)) {
-                //Device is about to disconnect
-                LogUtils.i("BluetoothListActivity"+" mReceiver onReceive Device is about to disconnect "+device.getAddress()+ " "+device.getName());
-            }
-            else if (BluetoothDevice.ACTION_ACL_DISCONNECTED.equals(action)) {
-                //Device has disconnected
-                LogUtils.i("BluetoothListActivity"+" mReceiver BT onReceive Device has disconnected "+device.getAddress()+ " "+device.getName());
-                Utils.getInstance(MainApplication.getGlobalContext()).setBoolean(Utils.PREF_IS_TOY_CONNECTED, false);
-                Utils.getInstance(MainApplication.getGlobalContext()).setString(Utils.PREF_CONNECTED_DEVICE_MAC, "");
-                Utils.getInstance(MainApplication.getGlobalContext()).setString(Utils.PREF_CONNECTED_DEVICE_NAME, "");
-
-                try{
-                    for (Listener listener : mListeners) {
-                        listener.onVoiceRecordStop();
-                    }
-                }catch (Exception e){
-                    e.printStackTrace();
-                }
-
-            }
+            Log.i(TAG, "A2DP status : " + intent.getAction());
         }
     };
-
-    enum BluetoothState {
-        AVAILABLE, UNAVAILABLE
-    }
 }

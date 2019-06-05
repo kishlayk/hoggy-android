@@ -4,10 +4,8 @@ import android.app.Service;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothHeadset;
-import android.bluetooth.BluetoothProfile;
 import android.bluetooth.IBluetoothA2dp;
 import android.bluetooth.IBluetoothHeadset;
-import android.bluetooth.BluetoothSocket;
 import android.content.BroadcastReceiver;
 import android.content.ComponentName;
 import android.content.Context;
@@ -16,29 +14,22 @@ import android.content.IntentFilter;
 import android.content.ServiceConnection;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
-import android.media.AudioManager;
 import android.os.AsyncTask;
 import android.os.Bundle;
-import android.os.Handler;
 import android.os.IBinder;
 import android.os.RemoteException;
 import android.util.Log;
 import android.widget.Toast;
 
 import com.my.kiki.R;
-import com.my.kiki.main.MainApplication;
-import com.my.kiki.ui.HomeActivity;
 import com.my.kiki.utils.Utils;
 
-import java.io.IOException;
-import java.lang.reflect.InvocationTargetException;
 import java.util.Set;
-import java.util.UUID;
 
 import static com.my.kiki.bluetooth.Bt_iadl.filter_1_string;
 import static com.my.kiki.bluetooth.Bt_iadl.ibta2;
 import static com.my.kiki.bluetooth.Bt_iadl.mIsBound;
-import static com.my.kiki.utils.Utils.PREF_IS_SPEAKING;
+import static com.my.kiki.utils.Utils.PREF_IS_TOY_SPEAKING;
 
 /*import static a2dp.connect2.Bt_iadl.filter_1_string;
 import static a2dp.connect2.Bt_iadl.ibta2;
@@ -76,8 +67,8 @@ public class Connector extends Service {
         if (!receiverRegistered) {
             String filter_1_string = "a2dp.connect2.Connector.INTERFACE";
             IntentFilter filter1 = new IntentFilter(filter_1_string);
-            application.registerReceiver(receiver, filter1);
-            application.registerReceiver(mReceiver, new IntentFilter("HEADSET_INTERFACE_CONNECTED"));
+            application.registerReceiver(a2dpReceiver, filter1);
+            application.registerReceiver(hspReceiver, new IntentFilter("HEADSET_INTERFACE_CONNECTED"));
             receiverRegistered = true;
         }
         getIBluetoothA2dp(application);
@@ -87,7 +78,7 @@ public class Connector extends Service {
 
     @Override
     public void onDestroy() {
-        //this.unregisterReceiver(receiver);
+        //this.unregisterReceiver(a2dpReceiver);
         Log.i(LOG_TAG, "OnDestroy called");
         done();
         super.onDestroy();
@@ -160,7 +151,7 @@ public class Connector extends Service {
                 if (device == null) {
                     Log.i(LOG_TAG, "Device was NULL");
 
-                    Intent broadcast = new Intent(Utils.BROAD_CAST_RECEIVER_DEVICE_UNPAIRED);
+                    Intent broadcast = new Intent(Utils.BROADCAST_INTENT_DEVICE_UNPAIRED);
                     sendBroadcast(broadcast);
 
                     return START_REDELIVER_INTENT;
@@ -172,8 +163,8 @@ public class Connector extends Service {
                 if (!receiverRegistered) {
                     String filter_1_string = "a2dp.connect2.Connector.INTERFACE";
                     IntentFilter filter1 = new IntentFilter(filter_1_string);
-                    application.registerReceiver(receiver, filter1);
-                    application.registerReceiver(mReceiver, new IntentFilter("HEADSET_INTERFACE_CONNECTED"));
+                    application.registerReceiver(a2dpReceiver, filter1);
+                    application.registerReceiver(hspReceiver, new IntentFilter("HEADSET_INTERFACE_CONNECTED"));
                     receiverRegistered = true;
                 }
 
@@ -210,7 +201,7 @@ public class Connector extends Service {
 
     ;
 
-    private final BroadcastReceiver receiver = new BroadcastReceiver() {
+    private final BroadcastReceiver a2dpReceiver = new BroadcastReceiver() {
 
         @Override
         public void onReceive(Context arg0, Intent arg1) {
@@ -317,7 +308,7 @@ public class Connector extends Service {
 
     };
 
-    private final BroadcastReceiver mReceiver = new BroadcastReceiver() {
+    private final BroadcastReceiver hspReceiver = new BroadcastReceiver() {
 
         @Override
         public void onReceive(Context arg0, Intent arg1) {
@@ -368,20 +359,15 @@ public class Connector extends Service {
             intent.putExtra("BT", btd );
             application.startService(intent);*/
 
-//            if(isConnected) {
-//                Intent broadcast = new Intent(Utils.BROAD_CAST_RECEIVER_DEVICE_CONNECTED)
-//                        .putExtra(Utils.EXTRA_DEVICE_IS_CONNECTED, isConnected);
-//                sendBroadcast(broadcast);
-//            }
 
-            Intent broadcast = new Intent(Utils.BROAD_CAST_RECEIVER_DEVICE_CONNECTED);
+            Intent broadcast = new Intent(Utils.BROADCAST_INTENT_DEVICE_CONNECTED);
             broadcast.putExtra(Utils.EXTRA_DEVICE_IS_CONNECTED, isConnected);
             if (isFromCallReceiver) {
                 broadcast.putExtra(Utils.EXTRA_IS_TEMP_DISCONNECT, isFromCallReceiver);
             }
+
             sendBroadcast(broadcast);
 
-            Log.i(LOG_TAG, "ConnectBt onPostExecute isConnected " + isConnected);
 
             super.onPostExecute(result);
         }
@@ -414,26 +400,19 @@ public class Connector extends Service {
             try {
 
                 if (ibta != null && ibta.getConnectionState(device) == 0) {
+
                     ibta.connect(device);
                     isConnected = true;
-                    Utils.getInstance(Connector.this).setString(Utils.PREF_CONNECTED_DEVICE_MAC, device.getAddress());
-                    Utils.getInstance(Connector.this).setString(Utils.PREF_CONNECTED_DEVICE_NAME, device.getName());
-                    Utils.getInstance(Connector.this).setBoolean(Utils.PREF_IS_TOY_CONNECTED, true);
-                    Log.v(LOG_TAG, "Connecting123: " + device.getName() + " PREF_CONNECTED_DEVICE_MAC " + Utils.getInstance(Connector.this).getString(Utils.PREF_CONNECTED_DEVICE_MAC) + " PREF_CONNECTED_DEVICE_NAME " + Utils.getInstance(Connector.this).getString(Utils.PREF_CONNECTED_DEVICE_NAME));
-
-                    SharedPreferences.Editor editor = null;
-                    editor = MainApplication.getGlobalContext().getSharedPreferences(PREFS, MODE_PRIVATE).edit();
-                    editor.putBoolean(PREF_IS_SPEAKING, false);
-                    editor.commit();
-
-                    
-
-
+                    Utils.preferencesOnConnect(Connector.this, device.getName(), device.getAddress());
+                    Log.v(LOG_TAG, "Connecting...: " + device.getName() + " PREF_CONNECTED_DEVICE_MAC " + Utils.getInstance(Connector.this).getString(Utils.PREF_CONNECTED_DEVICE_MAC) + " PREF_CONNECTED_DEVICE_NAME " + Utils.getInstance(Connector.this).getString(Utils.PREF_CONNECTED_DEVICE_NAME));
+                    Utils.getInstance(application).setBoolean(PREF_IS_TOY_SPEAKING, false);
 
                 } else {
+
                     ibta.disconnect(device);
                     isConnected = false;
-                    Log.v(LOG_TAG, "Disconnecting: " + device.getName());
+                    Log.v(LOG_TAG, "Disconnecting...: " + device.getName());
+
                 }
 
             } catch (Exception e) {
@@ -450,8 +429,8 @@ public class Connector extends Service {
         Log.i(LOG_TAG, "Service stopping");
         if (receiverRegistered) {
             try {
-                application.unregisterReceiver(receiver);
-                application.unregisterReceiver(mReceiver);
+                application.unregisterReceiver(a2dpReceiver);
+                application.unregisterReceiver(hspReceiver);
             } catch (Exception e) {
                 e.printStackTrace();
             }

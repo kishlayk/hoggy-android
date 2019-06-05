@@ -29,10 +29,13 @@ import com.my.kiki.databinding.ActivityBluetoothAvailableListBinding;
 import com.my.kiki.db.MyDatabase;
 import com.my.kiki.main.MainApplication;
 import com.my.kiki.model.PairedDevices;
+import com.my.kiki.receiver.ACLReceiver;
 import com.my.kiki.service.Connector;
+import com.my.kiki.service.SpeechService;
 import com.my.kiki.utils.LogUtils;
 import com.my.kiki.utils.Utils;
 
+import java.io.IOException;
 import java.util.List;
 
 import static com.my.kiki.utils.Utils.isInternetAvailable;
@@ -48,7 +51,9 @@ public class BluetoothAvailableListActivity extends AppCompatActivity implements
 
     private static final String TAG = "MainActivity";
 
-    MyDatabase db;
+    private MyDatabase db;
+    private ACLReceiver aclReceiver;
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -112,7 +117,19 @@ public class BluetoothAvailableListActivity extends AppCompatActivity implements
 
         IntentFilter filter = new IntentFilter();
         filter.addAction(BluetoothDevice.ACTION_ACL_CONNECTED);
-//        this.registerReceiver(mReceiver, filter);
+//        this.registerReceiver(aclReceiver, filter);
+        aclReceiver = new ACLReceiver(MainApplication.getGlobalContext(), new ACLReceiver.Listener() {
+            @Override
+            public void onConnected() {
+                finish();
+                startActivity(new Intent(MainApplication.getGlobalContext(), ConnectedToyActivity.class).addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP));
+            }
+
+            @Override
+            public void onDisconnected() {
+
+            }
+        });
 
     }
 
@@ -120,7 +137,6 @@ public class BluetoothAvailableListActivity extends AppCompatActivity implements
     public void onClick(View v) {
         int id = v.getId();
         switch (id) {
-
             case R.id.ivBack:
                 finish();
                 break;
@@ -135,7 +151,6 @@ public class BluetoothAvailableListActivity extends AppCompatActivity implements
         tvTitle.setText(getString(R.string.lbl_available_list));
 
         binding.lyToolBar.ivBack.setOnClickListener(this);
-
     }
 
 
@@ -184,11 +199,7 @@ public class BluetoothAvailableListActivity extends AppCompatActivity implements
      */
     @Override
     public void startLoading() {
-
-
-
         binding.list.startLoading();
-
         // Changes the button icon.
         binding.fab.setImageResource(R.drawable.ic_bluetooth_searching_white_24dp);
     }
@@ -259,6 +270,13 @@ public class BluetoothAvailableListActivity extends AppCompatActivity implements
     @Override
     protected void onDestroy() {
         bluetooth.close();
+
+        try {
+            aclReceiver.close();
+        }catch (IOException e){
+            e.printStackTrace();
+        }
+
         super.onDestroy();
     }
 
@@ -281,6 +299,13 @@ public class BluetoothAvailableListActivity extends AppCompatActivity implements
     @Override
     protected void onResume() {
         super.onResume();
+        MainApplication.activityResumed();
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+        MainApplication.activityPaused();
     }
 
     /**
@@ -299,13 +324,11 @@ public class BluetoothAvailableListActivity extends AppCompatActivity implements
             new Handler().postDelayed(new Runnable() {
                 @Override
                 public void run() {
-                    Utils.getInstance(BluetoothAvailableListActivity.this).setString(Utils.PREF_CONNECTED_DEVICE_MAC,device.getAddress());
-                    Utils.getInstance(BluetoothAvailableListActivity.this).setString(Utils.PREF_CONNECTED_DEVICE_NAME,device.getName());
-                    Utils.getInstance(BluetoothAvailableListActivity.this).setBoolean(Utils.PREF_IS_TOY_CONNECTED,true);
+                    Utils.preferencesOnConnect(BluetoothAvailableListActivity.this, device.getName(), device.getAddress());
                     PairedDevices pairedDevices = new PairedDevices(device.getName(),device.getAddress());
                     LogUtils.i("endLoadingWithDialog"+" list size before "+db.pairedDevicesDAO().getAll().size());
                     if (db.pairedDevicesDAO().getPairedDevice(device.getName(),device.getAddress()).size() == 0) {
-                        db.pairedDevicesDAO().insertPairedDevice(pairedDevices);
+                        Utils.insertToyifNew(BluetoothAvailableListActivity.this, device.getName(), device.getAddress());
                         Intent intent = new Intent(BluetoothAvailableListActivity.this, Connector.class);
                         intent.putExtra("ID", 100);
                         intent.putExtra(Utils.EXTRA_SELECTED_DEVICE_MAC, device.getAddress());
@@ -314,52 +337,18 @@ public class BluetoothAvailableListActivity extends AppCompatActivity implements
                         startService(intent);
                     }
                     LogUtils.i("endLoadingWithDialog"+" list size after "+db.pairedDevicesDAO().getAll().size());
+
+                    Intent intent = new Intent(BluetoothAvailableListActivity.this, Connector.class);
+                    intent.putExtra("ID", 100);
+                    intent.putExtra(Utils.EXTRA_SELECTED_DEVICE_MAC, device.getAddress());
+                    intent.putExtra(Utils.EXTRA_SELECTED_DEVICE_NAME, device.getName());
+                    intent.putExtra(Utils.EXTRA_IS_FROM_CALL_RECEIVER,false);
+                    startService(intent);
+
                     startActivity(new Intent(BluetoothAvailableListActivity.this, ConnectedToyActivity.class));
 //                    finish();
                 }
             },2000);
         }
-    //The BroadcastReceiver that listens for bluetooth broadcasts
-    private final BroadcastReceiver mReceiver = new BroadcastReceiver() {
-        @Override
-        public void onReceive(Context context, Intent intent) {
-            String action = intent.getAction();
-            BluetoothDevice device = intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE);
-
-            if (BluetoothDevice.ACTION_ACL_CONNECTED.equals(action)) {
-                //Device is now connected
-
-
-
-                if(isInternetAvailable()) {
-
-                    LogUtils.i("BluetoothListActivity"+" mReceiverfgh onReceive Device is now connected "+device.getAddress()+ " "+device.getName());
-//                    if (MainApplication.isActivityVisible()) {
-                        MyDatabase db;
-                        db = MyDatabase.getDataBase(MainApplication.getGlobalContext());
-                        List<PairedDevices> pairedDevicesList = db.pairedDevicesDAO().getAll();
-                        if (pairedDevicesList.size() > 0) {
-                            for (int i=0;i<pairedDevicesList.size();i++) {
-                                Log.v("is_data_body",pairedDevicesList.get(i).getDeviceName()+"");
-                                if (pairedDevicesList.get(i).getDeviceName().equals(device.getName())){
-                                    Utils.getInstance(BluetoothAvailableListActivity.this).setString(Utils.PREF_CONNECTED_DEVICE_MAC, device.getAddress());
-                                    Utils.getInstance(BluetoothAvailableListActivity.this).setString(Utils.PREF_CONNECTED_DEVICE_NAME, device.getName());
-                                    Utils.getInstance(BluetoothAvailableListActivity.this).setBoolean(Utils.PREF_IS_TOY_CONNECTED, true);
-                                    startActivity(new Intent(BluetoothAvailableListActivity.this, ConnectedToyActivity.class).addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP));
-                                    finish();
-                                }
-                            }
-                        }
-
-//                    }
-
-                }else{
-                    Toast.makeText(BluetoothAvailableListActivity.this, getString(R.string.msg_no_internet), Toast.LENGTH_SHORT).show();
-
-                }
-
-            }
-        }
-    };
 
 }

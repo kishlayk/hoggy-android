@@ -8,12 +8,8 @@ import android.net.ConnectivityManager;
 import android.os.Bundle;
 
 import android.support.v7.app.AppCompatActivity;
-import android.util.Log;
 import android.view.View;
-import android.widget.AdapterView;
-import android.widget.ArrayAdapter;
 import android.widget.DatePicker;
-import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -29,7 +25,6 @@ import com.my.kiki.utils.LogUtils;
 import com.my.kiki.utils.Utils;
 import com.my.kiki.utils.Validation;
 
-import java.net.InetAddress;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.Locale;
@@ -158,10 +153,13 @@ binding.edtClass.setOnClickListener(new View.OnClickListener() {
                     Utils.getInstance(SignupActivity.this).setString(Utils.PREF_USER_BIRTHDAY, binding.edtBirthday.getText().toString());
                     Utils.getInstance(SignupActivity.this).setString(Utils.PREF_USER_CLASS, binding.edtClass.getText().toString());
 
-
-
-                    startActivity(new Intent(SignupActivity.this, ConnectToyActivity.class));
                     binding.progress.setVisibility(View.GONE);
+                    if(Utils.isBuildTypeNoBluetooth()) {
+                        startActivity(new Intent(SignupActivity.this, HomeActivity.class));
+                    }else {
+                        startActivity(new Intent(SignupActivity.this, ConnectToyActivity.class));
+                    }
+
                     finish();
                 } else {
                     LogUtils.i("DbUploadActivity" + " onUploadResultIntent " + "write batch failed." + task.getException());

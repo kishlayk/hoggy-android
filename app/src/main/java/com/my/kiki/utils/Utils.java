@@ -3,41 +3,32 @@ package com.my.kiki.utils;
 import android.Manifest;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
-import android.bluetooth.BluetoothManager;
-import android.bluetooth.BluetoothProfile;
 import android.content.Context;
-import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.SharedPreferences.Editor;
 import android.content.pm.PackageManager;
 import android.media.AudioDeviceInfo;
 import android.media.AudioManager;
 import android.net.ConnectivityManager;
-import android.net.NetworkInfo;
 import android.os.Build;
 import android.support.v4.app.ActivityCompat;
 import android.telephony.CellInfo;
-import android.telephony.CellInfoGsm;
 import android.telephony.CellInfoWcdma;
-import android.telephony.CellSignalStrengthCdma;
 import android.telephony.CellSignalStrengthWcdma;
 import android.telephony.TelephonyManager;
 import android.util.Log;
-import android.widget.Toast;
+import android.view.View;
 
 import com.google.gson.Gson;
-import com.my.kiki.adapter.DeviceRecyclerViewAdapter;
-import com.my.kiki.bluetooth.BluetoothController;
+import com.my.kiki.BuildConfig;
+import com.my.kiki.db.MyDatabase;
 import com.my.kiki.main.MainApplication;
-import com.my.kiki.ui.BluetoothListActivity;
-import com.my.kiki.ui.HomeActivity;
+import com.my.kiki.model.PairedDevices;
 
 import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.lang.reflect.InvocationTargetException;
-import java.util.Iterator;
 import java.util.List;
-import java.util.Set;
 
 import static android.content.Context.MODE_PRIVATE;
 
@@ -51,8 +42,13 @@ public class Utils {
 
     public static final String blanch_caps = "blanch_caps.otf";
 
+    //app
+    public static final String PREF_APP_NAME = "kiki_app";
     public static final String PREF_USER_ID = "com.kiki.pref_user_id";
+
     public static final String PREF_USER_API_KEY = "com.kiki.pref_user_api_key";
+
+    //USER
     public static final String PREF_USER_EMAIL = "com.kiki.pref_user_email";
     public static final String PREF_USER_NAME = "com.kiki.pref_user_name";
     public static final String PREF_USER_BIRTHDAY = "com.kiki.pref_user_birthday";
@@ -60,16 +56,15 @@ public class Utils {
     public static final String CLASS_KEY = "class_key";
     public static final String CLASS_KEY_POSITION = "class_key_position";
     public static final String PREF_USER_PASSWORD = "com.kiki.pref_user_password";
-    public static final String PREF_IS_TOY_CONNECTED = "com.kiki.pref_is_toy_connected";
-    public static final String KEY_IS_LOGGED_IN = "isLoggedIn";
 
+
+    //LOGS
+    public static final String KEY_IS_LOGGED_IN = "isLoggedIn";
     public static final boolean SHOULD_PRINT_LOG = true;
 
-
-    public static final String PREF_NAME = "kiki_app";
-
-    public static final String PREF_IS_SPEAKING = "com.kiki.pref_is_speaking";
-    public static final String PREF_IS_ERROR = "com.kiki.pref_is_error";
+    //audio recording & GRPC
+    public static final String PREF_IS_TOY_SPEAKING = "com.kiki.pref_is_speaking";
+    public static final String PREF_IS_GRPC_ERROR = "com.kiki.pref_is_error";
 
     public static final String ET_FONT = "Helvetica.otf";
     public static final String TV_FONT = "Raleway-Regular.ttf";
@@ -77,22 +72,39 @@ public class Utils {
     public static final String FONT_DIR = "fonts/";
     public static final String EXTRA_MATCHID = "match_id";
 
-    public static final String EXTRA_SELECTED_DEVICE_MAC = "extra_selected_device_mac";
-    public static final String EXTRA_SELECTED_DEVICE_NAME = "extra_selected_device_name";
-    public static final String BROAD_CAST_RECEIVER_DEVICE_CONNECTED = "broad_cast_receiver_device_connected";
-    public static final String BROAD_CAST_RECEIVER_DEVICE_UNPAIRED = "broad_cast_receiver_device_unpaired";
-    public static final String EXTRA_DEVICE_IS_CONNECTED = "extra_device_is_connected";
+    //DEVICE & BLUETOOTH
+
+    // toy state monitoring
+    public static final String PREF_IS_TOY_CONNECTED = "com.kiki.pref_is_toy_connected";
     public static final String PREF_CONNECTED_DEVICE_MAC = "com.kiki.pref_connected_device_mac";
     public static final String PREF_CONNECTED_DEVICE_NAME = "com.kiki.pref_connected_device_name";
+
+    //BROADCAST INTENT & EXTRAS
+    public static final String BROADCAST_INTENT_DEVICE_CONNECTED = "broad_cast_receiver_device_connected";
+    public static final String BROADCAST_INTENT_DEVICE_UNPAIRED = "broad_cast_receiver_device_unpaired";
+
+    public static final String EXTRA_SELECTED_DEVICE_MAC = "extra_selected_device_mac";
+    public static final String EXTRA_SELECTED_DEVICE_NAME = "extra_selected_device_name";
+    public static final String EXTRA_DEVICE_IS_CONNECTED = "extra_device_is_connected";
+
     public static final String EXTRA_IS_FROM_CALL_RECEIVER = "extra_is_from_call_receiver";
     public static final String EXTRA_IS_TEMP_DISCONNECT = "extra_is_temp_disconnect";
 
+
+    //UNUSED
     public static final String TOY_DEVICE_OBJECT = "toy_device_object";
     public static boolean temp;
 
+    public static final String FLAVOR_NOBLUETOOTH = "nobluetooth";
+
+
+    public enum BluetoothState {
+        AVAILABLE, UNAVAILABLE
+    }
+
     public Utils(Context context) {
         this.context = context;
-        pref = context.getSharedPreferences(PREF_NAME, MODE_PRIVATE);
+        pref = context.getSharedPreferences(PREF_APP_NAME, MODE_PRIVATE);
         edit = pref.edit();
     }
 
@@ -137,26 +149,6 @@ public class Utils {
         return cm.getActiveNetworkInfo() != null;
     }
 
-    public static boolean isToyConnected(){
-
-
-
-        BluetoothAdapter BA = BluetoothAdapter.getDefaultAdapter();
-        BA.enable();
-        Set s = BA.getBondedDevices();
-        Iterator it = s.iterator();
-        while (it.hasNext()){
-            BluetoothDevice d = (BluetoothDevice) it.next();
-            System.out.println("device is "+d.getName());
-        }
-
-        BA.getRemoteDevice("00:58:56:07:72:D8");
-//        ConnectivityManager cm = (ConnectivityManager) MainApplication.getGlobalContext().getSystemService(Context.CONNECTIVITY_SERVICE);
-//        NetworkInfo bluetooth = cm.getNetworkInfo(ConnectivityManager.TYPE_BLUETOOTH);
-//        if(controller.isBluetoothEnabled()) return true;
-        return false;
-    }
-
     public static boolean isToyReady(){
         return false;
     }
@@ -165,7 +157,7 @@ public class Utils {
         return 0;
     }
 
-    public static boolean toyCorrectlyConnected(BluetoothDevice device, Editor editor){
+    public static boolean toyCorrectlyConnected(BluetoothDevice device, Context context){
 
         if(device.getName().isEmpty() || !device.getName().equals("Pet Singer")){
             return false;
@@ -173,15 +165,16 @@ public class Utils {
         //store current device in prefrences
         String currentDevice = Utils.getInstance(MainApplication.getGlobalContext()).getString(Utils.TOY_DEVICE_OBJECT);
         try {
-            if (currentDevice == null || currentDevice.isEmpty() || currentDevice.equals(null)) {
-                editor.putString(Utils.TOY_DEVICE_OBJECT, new Gson().toJson(device));
-                editor.commit();
-            } else{
-                BluetoothDevice storedDevice = new Gson().fromJson(currentDevice, BluetoothDevice.class);
-                if (!storedDevice.getAddress().equals(device.getAddress())){
-                    return false;
-                }
-            }
+//            if (currentDevice == null || currentDevice.isEmpty() || currentDevice.equals(null)) {
+//                Utils.getInstance(MainApplication.getGlobalContext()).setString(Utils.TOY_DEVICE_OBJECT, new Gson().toJson(device));
+//            } else{
+//                BluetoothDevice storedDevice = new Gson().fromJson(currentDevice, BluetoothDevice.class);
+//                if (!storedDevice.getAddress().equals(device.getAddress())){
+//                    return false;
+//                }
+//            }
+
+            insertToyifNew(context, device.getName(), device.getAddress());
         }catch (NullPointerException e){
             Log.e( "BluetoothListActivity", e.getMessage());
 
@@ -190,7 +183,14 @@ public class Utils {
 
     }
 
-    public static boolean isToyConnected(Context context) {
+    public static void insertToyifNew(Context context, String toyName, String toyMacAddress){
+        MyDatabase db = MyDatabase.getDataBase(context);
+        if (db.pairedDevicesDAO().getPairedDevice(toyName,toyMacAddress).size() == 0){
+            db.pairedDevicesDAO().insertPairedDevice(new PairedDevices(toyName, toyMacAddress));
+        }
+    }
+
+    public static boolean isToyAlreadyConnected(Context context) {
         AudioManager audioManager = (AudioManager) context.getSystemService(Context.AUDIO_SERVICE);
         BluetoothAdapter bta = BluetoothAdapter.getDefaultAdapter();
         if (bta.isEnabled() && audioManager.isBluetoothA2dpOn()) {
@@ -199,7 +199,11 @@ public class Utils {
                 for (AudioDeviceInfo ad:audiodevices) {
                   if (ad.getProductName().equals("Pet Singer")){
                       try {
-                          setDevicePreferencesonConnection(context, ad.getProductName().toString(), (String) ad.getClass().getDeclaredMethod("getAddress").invoke(ad));
+                          String toyName = ad.getProductName().toString();
+                          String toyMacAddress = (String) ad.getClass().getDeclaredMethod("getAddress").invoke(ad);
+                          preferencesOnConnect(context, toyName, toyMacAddress);
+                          insertToyifNew(context, toyName, toyMacAddress);
+
                       } catch (IllegalAccessException e) {
                           e.printStackTrace();
                       } catch (InvocationTargetException e) {
@@ -221,10 +225,25 @@ public class Utils {
         return false;
     }
 
-    public static void setDevicePreferencesonConnection(Context context, String deviceName, String deviceAddress){
-        Utils.getInstance(context).setString(Utils.PREF_CONNECTED_DEVICE_MAC, deviceAddress);
-        Utils.getInstance(context).setString(Utils.PREF_CONNECTED_DEVICE_NAME, deviceName);
-        Utils.getInstance(context).setBoolean(Utils.PREF_IS_TOY_CONNECTED, true);
+    public static void preferencesOnConnect(Context context, String deviceName, String deviceAddress){
+        if (context != null){
+            Utils.getInstance(context).setString(Utils.PREF_CONNECTED_DEVICE_MAC, deviceAddress);
+            Utils.getInstance(context).setString(Utils.PREF_CONNECTED_DEVICE_NAME, deviceName);
+            Utils.getInstance(context).setBoolean(Utils.PREF_IS_TOY_CONNECTED, true);
+        }
+    }
+
+    public static void preferencesOndisconnect(Context ctx){
+        Utils.getInstance(ctx).setBoolean(Utils.PREF_IS_TOY_CONNECTED, false);
+        Utils.getInstance(ctx).setString(Utils.PREF_CONNECTED_DEVICE_MAC, "");
+        Utils.getInstance(ctx).setString(Utils.PREF_CONNECTED_DEVICE_NAME, "");
+    }
+
+    public static boolean checkToyConnection(Context ctx){
+        return Utils.getInstance(ctx).getString(Utils.PREF_CONNECTED_DEVICE_MAC) != null &&
+            !Utils.getInstance(ctx).getString(Utils.PREF_CONNECTED_DEVICE_MAC).equals("") &&
+            Utils.getInstance(ctx).getString(Utils.PREF_CONNECTED_DEVICE_NAME) != null &&
+            !Utils.getInstance(ctx).getString(Utils.PREF_CONNECTED_DEVICE_NAME).equals("");
     }
 
     public float readUsage() {
@@ -299,4 +318,38 @@ public class Utils {
         }
         return -10000;
     }
+
+    public static void refreshState(Context ctx){
+        Utils.getInstance(ctx).setBoolean(PREF_IS_TOY_SPEAKING, false);
+        Utils.getInstance(ctx).setBoolean(PREF_IS_GRPC_ERROR, false);
+        isToyAlreadyConnected(ctx);
+    }
+
+    public void refreshGrpcState(){
+
+    }
+
+    public void refreshBluetoothState(){
+
+    }
+
+    public static boolean isBluetoothDeviceToy(BluetoothDevice device){
+        MyDatabase db;
+        db = MyDatabase.getDataBase(MainApplication.getGlobalContext());
+        List<PairedDevices> pairedDevicesList = db.pairedDevicesDAO().getAll();
+        if (pairedDevicesList.size() > 0) {
+            for (int i=0;i<pairedDevicesList.size();i++) {
+                Log.v("is_data_body",pairedDevicesList.get(i).getDeviceName()+"");
+                if (pairedDevicesList.get(i).getDeviceName().equals(device.getName())){
+                    return true;
+                }
+            }
+        }
+    return false;
+    }
+
+    public static boolean isBuildTypeNoBluetooth(){
+        return BuildConfig.BUILD_TYPE.equals(Utils.FLAVOR_NOBLUETOOTH);
+    }
+
 }

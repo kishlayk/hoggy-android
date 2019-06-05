@@ -38,7 +38,7 @@ import java.io.Closeable;
  *
  * @author Donato Rimenti
  */
-public class BroadcastReceiverDelegator extends BroadcastReceiver implements Closeable {
+public class DiscoveryBReceiverDelegator extends BroadcastReceiver implements Closeable {
 
     /**
      * Callback for Bluetooth events.
@@ -56,13 +56,13 @@ public class BroadcastReceiverDelegator extends BroadcastReceiver implements Clo
     private final Context context;
 
     /**
-     * Instantiates a new BroadcastReceiverDelegator.
+     * Instantiates a new DiscoveryBReceiverDelegator.
      *
      * @param context   the context of this object.
-     * @param listener  a callback for handling Bluetooth events.
+     * @param listener  a onConnected for handling Bluetooth events.
      * @param bluetooth a controller for the Bluetooth.
      */
-    public BroadcastReceiverDelegator(Context context, BluetoothDiscoveryDeviceListener listener, BluetoothController bluetooth) {
+    public DiscoveryBReceiverDelegator(Context context, BluetoothDiscoveryDeviceListener listener, BluetoothController bluetooth) {
         this.listener = listener;
         this.context = context;
         this.listener.setBluetoothController(bluetooth);

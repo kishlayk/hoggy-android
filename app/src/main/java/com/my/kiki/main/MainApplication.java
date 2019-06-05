@@ -3,18 +3,22 @@ package com.my.kiki.main;
 import android.app.Application;
 import android.content.Context;
 
+import com.my.kiki.utils.Utils;
+
 
 public class MainApplication extends Application {
 
     private static Context context;
-
+    private static boolean activityVisible;
     @Override
     public void onCreate() {
         super.onCreate();
 
-
         context = null;
         context = getApplicationContext();
+
+        Utils.refreshState(context);
+        activityVisible=true;
 
     }
 
@@ -30,7 +34,6 @@ public class MainApplication extends Application {
         activityVisible = false;
     }
 
-    private static boolean activityVisible;
 
     public static MainApplication create(Context context) {
         return MainApplication.get(context);
@@ -39,6 +42,7 @@ public class MainApplication extends Application {
     private static MainApplication get(Context context) {
         return (MainApplication) context.getApplicationContext();
     }
+
 
 
 
