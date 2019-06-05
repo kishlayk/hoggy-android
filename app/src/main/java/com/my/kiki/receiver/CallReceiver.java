@@ -3,10 +3,8 @@ package com.my.kiki.receiver;
 import android.app.ActivityManager;
 import android.content.Context;
 import android.content.Intent;
-import android.content.SharedPreferences;
 import android.os.Handler;
 import android.util.Log;
-import android.widget.Toast;
 
 import com.my.kiki.main.MainApplication;
 import com.my.kiki.service.Connector;
@@ -17,19 +15,13 @@ import com.my.kiki.utils.Utils;
 import java.util.Date;
 import java.util.List;
 
-import static android.content.Context.MODE_PRIVATE;
-import static com.my.kiki.utils.Utils.PREF_IS_SPEAKING;
-import static com.my.kiki.utils.Utils.PREF_NAME;
+import static com.my.kiki.utils.Utils.PREF_IS_TOY_SPEAKING;
 
 public class CallReceiver extends PhonecallReceiver {
 
     @Override
-    protected void onIncomingCallReceived(Context ctx, String number, Date start)
-    {
-        SharedPreferences.Editor editor = null;
-        editor = MainApplication.getGlobalContext().getSharedPreferences(PREF_NAME, MODE_PRIVATE).edit();
-        editor.putBoolean(PREF_IS_SPEAKING, true);
-        editor.commit();
+    protected void onIncomingCallReceived(Context ctx, String number, Date start) {
+        Utils.getInstance(ctx).setBoolean(PREF_IS_TOY_SPEAKING, true);
         //
         LogUtils.i("CallReceiver"+" onIncomingCallReceived ");
        // Toast.makeText(ctx,"onIncomingCallReceived",Toast.LENGTH_SHORT).show();
@@ -37,40 +29,29 @@ public class CallReceiver extends PhonecallReceiver {
     }
 
     @Override
-    protected void onIncomingCallAnswered(Context ctx, String number, Date start)
-    {
-        SharedPreferences.Editor editor = null;
-        editor = MainApplication.getGlobalContext().getSharedPreferences(PREF_NAME, MODE_PRIVATE).edit();
-        editor.putBoolean(PREF_IS_SPEAKING, true);
-        editor.commit();
+    protected void onIncomingCallAnswered(Context ctx, String number, Date start) {
+        Utils.getInstance(ctx).setBoolean(PREF_IS_TOY_SPEAKING, true);
         //
         LogUtils.i("CallReceiver"+" onIncomingCallAnswered ");
      //   Toast.makeText(ctx,"onIncomingCallAnswered",Toast.LENGTH_SHORT).show();
     }
 
     @Override
-    protected void onIncomingCallEnded(final Context ctx, String number, Date start, Date end)
-    {
-
+    protected void onIncomingCallEnded(final Context ctx, String number, Date start, Date end) {
         LogUtils.i("CallReceiver"+" onIncomingCallEnded ");
-     //   Toast.makeText(ctx,"onIncomingCallEnded",Toast.LENGTH_SHORT).show();
+        //   Toast.makeText(ctx,"onIncomingCallEnded",Toast.LENGTH_SHORT).show();
         new Handler().postDelayed(new Runnable() {
             @Override
             public void run() {
                 connectDisconnectDevice(ctx);
             }
         },1000);
-       /* editor.putBoolean(PREF_IS_SPEAKING, true);
-        editor.commit();*/
+        //   Utils.getInstance(ctx).setBoolean(PREF_IS_TOY_SPEAKING, true);
     }
 
     @Override
-    protected void onOutgoingCallStarted(Context ctx, String number, Date start)
-    {
-        SharedPreferences.Editor editor = null;
-        editor = MainApplication.getGlobalContext().getSharedPreferences(PREF_NAME, MODE_PRIVATE).edit();
-        editor.putBoolean(PREF_IS_SPEAKING, true);
-        editor.commit();
+    protected void onOutgoingCallStarted(Context ctx, String number, Date start) {
+        Utils.getInstance(ctx).setBoolean(PREF_IS_TOY_SPEAKING, true);
         //
         LogUtils.i("CallReceiver"+" onOutgoingCallStarted ");
      //   Toast.makeText(ctx,"onOutgoingCallStarted",Toast.LENGTH_SHORT).show();
@@ -78,10 +59,8 @@ public class CallReceiver extends PhonecallReceiver {
     }
 
     @Override
-    protected void onOutgoingCallEnded(final Context ctx, String number, Date start, Date end)
-    {
+    protected void onOutgoingCallEnded(final Context ctx, String number, Date start, Date end) {
 
-        //
         LogUtils.i("CallReceiver"+" onOutgoingCallEnded ");
      //   Toast.makeText(ctx,"onOutgoingCallEnded",Toast.LENGTH_SHORT).show();
         new Handler().postDelayed(new Runnable() {
@@ -94,14 +73,12 @@ public class CallReceiver extends PhonecallReceiver {
     }
 
     @Override
-    protected void onMissedCall(final Context ctx, String number, Date start)
-    {
+    protected void onMissedCall(final Context ctx, String number, Date start) {
 
-        //
-       /* editor.putBoolean(PREF_IS_SPEAKING, false);
-        editor.commit();*/
+
+//       Utils.getInstance(ctx).setBoolean(PREF_IS_TOY_SPEAKING, false);
         LogUtils.i("CallReceiver"+" onMissedCall ");
-     //   Toast.makeText(ctx,"onMissedCall",Toast.LENGTH_SHORT).show();
+//   Toast.makeText(ctx,"onMissedCall",Toast.LENGTH_SHORT).show();
         new Handler().postDelayed(new Runnable() {
             @Override
             public void run() {
@@ -113,10 +90,7 @@ public class CallReceiver extends PhonecallReceiver {
     }
 
     private void connectDisconnectDevice(Context ctx) {
-        LogUtils.i("CallReceiver"+" connectDisconnectDevice PREF_CONNECTED_DEVICE_MAC "+Utils.getInstance(ctx).getString(Utils.PREF_CONNECTED_DEVICE_MAC));
-        LogUtils.i("CallReceiver"+" connectDisconnectDevice PREF_CONNECTED_DEVICE_NAME "+Utils.getInstance(ctx).getString(Utils.PREF_CONNECTED_DEVICE_NAME));
-        if (Utils.getInstance(ctx).getString(Utils.PREF_CONNECTED_DEVICE_MAC) != null && !Utils.getInstance(ctx).getString(Utils.PREF_CONNECTED_DEVICE_MAC).equals("")
-                && Utils.getInstance(ctx).getString(Utils.PREF_CONNECTED_DEVICE_NAME) != null && !Utils.getInstance(ctx).getString(Utils.PREF_CONNECTED_DEVICE_NAME).equals("")) {
+        if (Utils.checkToyConnection(ctx)) {
             Intent intent = new Intent(ctx, Connector.class);
             intent.putExtra("ID", 100);
             intent.putExtra(Utils.EXTRA_SELECTED_DEVICE_MAC, Utils.getInstance(ctx).getString(Utils.PREF_CONNECTED_DEVICE_MAC));

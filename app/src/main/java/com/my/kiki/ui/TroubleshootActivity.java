@@ -1,16 +1,13 @@
 package com.my.kiki.ui;
 
-import android.content.BroadcastReceiver;
-import android.content.Context;
+
 import android.content.DialogInterface;
 import android.content.Intent;
-import android.content.IntentFilter;
 import android.databinding.DataBindingUtil;
 import android.os.Bundle;
 import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
-import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.TextView;
@@ -166,8 +163,7 @@ String ques1="",ques2="",ques3="",ques4="";
 
     private void disConnectDevice() {
 
-        if (Utils.getInstance(this).getString(Utils.PREF_CONNECTED_DEVICE_MAC) != null && !Utils.getInstance(this).getString(Utils.PREF_CONNECTED_DEVICE_MAC).equals("")
-                && Utils.getInstance(this).getString(Utils.PREF_CONNECTED_DEVICE_NAME) != null && !Utils.getInstance(this).getString(Utils.PREF_CONNECTED_DEVICE_NAME).equals("")) {
+        if (Utils.checkToyConnection(this)) {
             Intent intent = new Intent(this, Connector.class);
             intent.putExtra("ID", 100);
             intent.putExtra(Utils.EXTRA_SELECTED_DEVICE_MAC, Utils.getInstance(this).getString(Utils.PREF_CONNECTED_DEVICE_MAC));

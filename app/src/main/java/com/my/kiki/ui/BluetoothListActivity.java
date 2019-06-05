@@ -8,7 +8,6 @@ import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.IntentFilter;
-import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.databinding.DataBindingUtil;
 import android.media.AudioManager;
@@ -29,7 +28,6 @@ import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import com.google.gson.Gson;
 import com.my.kiki.R;
 import com.my.kiki.adapter.BluetoothListAdapter;
 import com.my.kiki.databinding.ActivityBluetoothListBinding;
@@ -37,14 +35,18 @@ import com.my.kiki.db.MyDatabase;
 import com.my.kiki.main.MainApplication;
 import com.my.kiki.model.PairedDevices;
 import com.my.kiki.model.PairedDevicesModel;
+import com.my.kiki.receiver.ACLReceiver;
+import com.my.kiki.receiver.ConnectViaAppReceiver;
 import com.my.kiki.service.Connector;
 import com.my.kiki.utils.LogUtils;
 import com.my.kiki.utils.Utils;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 
+import static com.my.kiki.utils.Utils.insertToyifNew;
 import static com.my.kiki.utils.Utils.isInternetAvailable;
 import static com.my.kiki.utils.Utils.toyCorrectlyConnected;
 
@@ -61,8 +63,12 @@ public class BluetoothListActivity extends AppCompatActivity implements View.OnC
 
     MyDatabase db;
 
+    ConnectViaAppReceiver cvReceiver;
+
     int selectedPos;
     private static final int READ_PHONE_STATE_CODE = 1234;
+
+    ACLReceiver aclReceiver;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -73,7 +79,7 @@ public class BluetoothListActivity extends AppCompatActivity implements View.OnC
                 Manifest.permission.ACCESS_COARSE_LOCATION) + ContextCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO)
                 + ContextCompat.checkSelfPermission(this, Manifest.permission.READ_PHONE_STATE)
                 != PackageManager.PERMISSION_GRANTED) {
-DialogPermission();
+        DialogPermission();
         }
 
         db = MyDatabase.getDataBase(this);
@@ -102,13 +108,19 @@ DialogPermission();
 //        loadDevices();
         loadFromDb();
 
+        aclReceiver = new ACLReceiver(this, new ACLReceiver.Listener(){
 
-        IntentFilter filter = new IntentFilter();
-        filter.addAction(BluetoothDevice.ACTION_ACL_CONNECTED);
-        filter.addAction(BluetoothDevice.ACTION_ACL_DISCONNECT_REQUESTED);
-        filter.addAction(BluetoothDevice.ACTION_ACL_DISCONNECTED);
-        this.registerReceiver(mReceiver, filter);
+            @Override
+            public void onConnected() {
+                startActivity(new Intent(MainApplication.getGlobalContext(), ConnectedToyActivity.class).addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP));
+                finish();
+            }
 
+            @Override
+            public void onDisconnected() {
+
+            }
+        });
 
     }
     @Override
@@ -119,7 +131,7 @@ DialogPermission();
 
                 if (grantResults[0] == PackageManager.PERMISSION_GRANTED&&grantResults[1] ==
                         PackageManager.PERMISSION_GRANTED&&grantResults[2] == PackageManager.PERMISSION_GRANTED) {
-                    if(Utils.isToyConnected(this)){
+                    if(Utils.isToyAlreadyConnected(this)){
                         startActivity(new Intent(this, ConnectedToyActivity.class));
                     }
                 } else {
@@ -174,70 +186,6 @@ DialogPermission();
         positiveButtonLL.gravity = Gravity.CENTER;
         positiveButton.setLayoutParams(positiveButtonLL);
     }
-
-    //The BroadcastReceiver that listens for bluetooth broadcasts
-    private final BroadcastReceiver mReceiver = new BroadcastReceiver() {
-        @Override
-        public void onReceive(Context context, Intent intent) {
-            String action = intent.getAction();
-            BluetoothDevice device = intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE);
-            if (!toyCorrectlyConnected(device, getSharedPreferences(Utils.PREF_NAME, MODE_PRIVATE).edit())){
-                Toast.makeText(BluetoothListActivity.this, "Toy not connected. Connect to Pet Signer", Toast.LENGTH_SHORT);
-                return;
-            }
-            if (BluetoothDevice.ACTION_FOUND.equals(action)) {
-                //Device found
-                LogUtils.i("BluetoothListActivity"+" mReceiver onReceive Device found "+device.getAddress()+ " "+device.getName());
-            }
-            else if (BluetoothDevice.ACTION_ACL_CONNECTED.equals(action)) {
-           //Device is now connected
-
-                if(isInternetAvailable()) {
-
-                    LogUtils.i("BluetoothListActivity"+" mReceiverfgh onReceive Device is now connected "+device.getAddress()+ " "+device.getName());
-                    MyDatabase db;
-                    db = MyDatabase.getDataBase(MainApplication.getGlobalContext());
-                    if (MainApplication.isActivityVisible()) {
-                        List<PairedDevices> pairedDevicesList = db.pairedDevicesDAO().getAll();
-                        if (pairedDevicesList.size() > 0) {
-                            for (int i=0;i<pairedDevicesList.size();i++) {
-                                Log.v("is_data_body",pairedDevicesList.get(i).getDeviceName()+"");
-                                if (pairedDevicesList.get(i).getDeviceName().equals(device.getName())){
-                                    Utils.setDevicePreferencesonConnection(BluetoothListActivity.this, device.getName(), device.getAddress());
-                                    startActivity(new Intent(BluetoothListActivity.this, ConnectedToyActivity.class).addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP));
-                                    finish();
-                                }
-                            }
-                        }else if(toyCorrectlyConnected(device, getSharedPreferences(Utils.PREF_NAME, MODE_PRIVATE).edit())){
-                            db.pairedDevicesDAO().insertPairedDevice(new PairedDevices(device.getName(), device.getAddress()));
-                            Utils.setDevicePreferencesonConnection(BluetoothListActivity.this, device.getName(), device.getAddress());
-                            startActivity(new Intent(BluetoothListActivity.this, ConnectedToyActivity.class).addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP));
-                        }
-                    }
-
-                }else{
-                    Toast.makeText(BluetoothListActivity.this, getString(R.string.msg_no_internet), Toast.LENGTH_SHORT).show();
-
-                }
-
-            }
-            else if (BluetoothAdapter.ACTION_DISCOVERY_FINISHED.equals(action)) {
-           //Done searching
-                LogUtils.i("BluetoothListActivity"+" mReceiver onReceive Done searching "+device.getAddress()+ " "+device.getName());
-            }
-            else if (BluetoothDevice.ACTION_ACL_DISCONNECT_REQUESTED.equals(action)) {
-            //Device is about to disconnect
-                LogUtils.i("BluetoothListActivity"+" mReceiver onReceive Device is about to disconnect "+device.getAddress()+ " "+device.getName());
-            }
-            else if (BluetoothDevice.ACTION_ACL_DISCONNECTED.equals(action)) {
-            //Device has disconnected
-                LogUtils.i("BluetoothListActivity"+" mReceiverfgh BT onReceive Device has disconnected "+device.getAddress()+ " "+device.getName());
-                Utils.getInstance(BluetoothListActivity.this).setBoolean(Utils.PREF_IS_TOY_CONNECTED, false);
-                Utils.getInstance(BluetoothListActivity.this).setString(Utils.PREF_CONNECTED_DEVICE_MAC, "");
-                Utils.getInstance(BluetoothListActivity.this).setString(Utils.PREF_CONNECTED_DEVICE_NAME, "");
-            }
-        }
-    };
 
     private void loadFromDb() {
 
@@ -314,7 +262,6 @@ DialogPermission();
         switch (id) {
 
             case R.id.ivBack:
-//                finish();
                 onBackPressed();
                 break;
             case R.id.fab:
@@ -373,69 +320,12 @@ DialogPermission();
         }
 
     }
-    // only used when connecting new bluetooth toy
-    private BroadcastReceiver mBroadcastReceiver = new BroadcastReceiver() {
-        @Override
-        public void onReceive(Context context, Intent intent) {
-            final BluetoothDevice device = intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE);
 
-            if (intent.getExtras() != null) {
-                Log.i("BluetoothListActivity", " onReceive " + intent.getExtras().getBoolean(Utils.EXTRA_DEVICE_IS_CONNECTED));
-//                setNighMode(intent.getExtras().getBoolean(Utils.EXTRA_IS_NIGHT_MODE));
-
-                if (intent.getExtras().getBoolean(Utils.EXTRA_DEVICE_IS_CONNECTED)) {
-                    new Handler().postDelayed(new Runnable() {
-                        @Override
-                        public void run() {
-                            Log.v("isinlog","isin");
-                            AudioManager audioManager = (AudioManager) MainApplication.getGlobalContext().getSystemService(Context.AUDIO_SERVICE);
-                            if (audioManager.isBluetoothA2dpOn()) {
-
-                                if(isInternetAvailable()) {
-                                    if (MainApplication.isActivityVisible()) {
-                                        startActivity(new Intent(BluetoothListActivity.this, ConnectedToyActivity.class).addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP));
-                                        finish();
-                                        if (device!=null&&device.getAddress()!=null&&device.getName()!=null) {
-                                           /* Utils.getInstance(BluetoothListActivity.this).setString(Utils.PREF_CONNECTED_DEVICE_MAC, device.getAddress());
-                                            Utils.getInstance(BluetoothListActivity.this).setString(Utils.PREF_CONNECTED_DEVICE_NAME, device.getName());
-                                            Utils.getInstance(BluetoothListActivity.this).setBoolean(Utils.PREF_IS_TOY_CONNECTED, true);*/
-
-                                        }else {
-                                        //    Toast.makeText(BluetoothListActivity.this,getString(R.string.str_connected_toy),Toast.LENGTH_SHORT).show();
-                                        }
-                                    }
-
-                                }else{
-                                    Toast.makeText(BluetoothListActivity.this, getString(R.string.msg_no_internet), Toast.LENGTH_SHORT).show();
-
-                                }
-
-
-                            }else {
-                                Toast.makeText(BluetoothListActivity.this,getString(R.string.str_device_unpaired),Toast.LENGTH_SHORT).show();
-                            }
-                        }
-                    },3500);
-
-                }else {
-                /*    BluetoothAdapter mBluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
-                    if (mBluetoothAdapter.isEnabled()) {
-                        mBluetoothAdapter.disable();
-                    }*/
-                }
-
-            }
-
-        }
-
-
-    };
-
-    private BroadcastReceiver mBroadcastReceiverUnpaired = new BroadcastReceiver() {
+    private BroadcastReceiver disconnectViaAppReceiver = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
 
-            Log.i("BluetoothListActivity", " mBroadcastReceiverUnpaired onReceive ");
+            Log.i("BluetoothListActivity", " disconnectViaAppReceiver onReceive ");
 
           //  Toast.makeText(BluetoothListActivity.this,getString(R.string.str_device_unpaired),Toast.LENGTH_SHORT).show();
 
@@ -454,16 +344,38 @@ DialogPermission();
     @Override
     public void onStart() {
         super.onStart();
-        registerReceiver(mBroadcastReceiver, new IntentFilter(Utils.BROAD_CAST_RECEIVER_DEVICE_CONNECTED));
-        registerReceiver(mBroadcastReceiverUnpaired, new IntentFilter(Utils.BROAD_CAST_RECEIVER_DEVICE_UNPAIRED));
+        registerReceiver(disconnectViaAppReceiver, new IntentFilter(Utils.BROADCAST_INTENT_DEVICE_UNPAIRED));
+/*        cvReceiver = new ConnectViaAppReceiver(this, new ConnectViaAppReceiver.Listener() {
+            @Override
+            public void callback1() {}
+
+            @Override
+            public void callback2() {}
+
+            @Override
+            public void callback3() {
+                finish();
+                startActivity(new Intent(BluetoothListActivity.this, ConnectedToyActivity.class).addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP));
+            }
+        });*/
     }
 
     @Override
     public void onDestroy() {
         super.onDestroy();
-        unregisterReceiver(mBroadcastReceiver);
-        unregisterReceiver(mBroadcastReceiverUnpaired);
-        unregisterReceiver(mReceiver);
+
+        unregisterReceiver(disconnectViaAppReceiver);
+        /*try {
+            cvReceiver.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }*/
+        try {
+            aclReceiver.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
     }
 
 

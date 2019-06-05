@@ -55,7 +55,7 @@ public class BluetoothController implements Closeable {
     /**
      * Class used to handle communication with OS about Bluetooth system events.
      */
-    private final BroadcastReceiverDelegator broadcastReceiverDelegator;
+    private final DiscoveryBReceiverDelegator broadcastReceiverDelegator;
 
     /**
      * The activity which is using this controller.
@@ -78,12 +78,12 @@ public class BluetoothController implements Closeable {
      * Instantiates a new BluetoothController.
      *
      * @param context  the activity which is using this controller.
-     * @param listener a callback for handling Bluetooth events.
+     * @param listener a onConnected for handling Bluetooth events.
      */
     public BluetoothController(Activity context, BluetoothAdapter adapter, BluetoothDiscoveryDeviceListener listener) {
         this.context = context;
         this.bluetooth = adapter;
-        this.broadcastReceiverDelegator = new BroadcastReceiverDelegator(context, listener, this);
+        this.broadcastReceiverDelegator = new DiscoveryBReceiverDelegator(context, listener, this);
     }
 
     /**

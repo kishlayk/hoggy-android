@@ -23,6 +23,23 @@
         android:supportsRtl="true"
         android:theme="@style/AppTheme"
         tools:ignore="GoogleAppIndexingWarning">
+        <receiver
+            android:name=".receiver.DisconnectViaAppReceiver"
+            android:enabled="true"
+            android:exported="true"></receiver>
+        <receiver
+            android:name=".receiver.ConnectViaAppReceiver"
+            android:enabled="true"
+            android:exported="true" />
+        <receiver
+            android:name=".receiver.SCOReceiver"
+            android:enabled="true"
+            android:exported="true" />
+        <receiver
+            android:name=".receiver.ACLReceiver"
+            android:enabled="true"
+            android:exported="true" />
+
         <activity
             android:name=".ui.TicketsActivity"
             android:theme="@style/AppTheme.NoActionBar" />
@@ -88,8 +105,7 @@
                 <action android:name="android.intent.action.NEW_OUTGOING_CALL" />
             </intent-filter>
         </receiver>
-        <receiver
-            android:name=".receiver.ConnectionReceiver">
+        <receiver android:name=".receiver.ConnectionReceiver">
             <intent-filter>
                 <action android:name="android.bluetooth.device.action.ACTION_ACL_CONNECTED" />
             </intent-filter>
@@ -100,8 +116,6 @@
                 <action android:name="android.bluetooth.device.action.ACTION_ACL_DISCONNECTED" />
             </intent-filter>
         </receiver>
-
-
     </application>
 
 </manifest>
